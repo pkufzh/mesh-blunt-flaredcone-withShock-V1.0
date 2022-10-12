@@ -49,7 +49,10 @@
     !real*8, allocatable:: ss(:), ss_new(:), xb_new(:), yb_new(:)
     !real*8, allocatable:: xx(:,:), yy(:,:)
     common/para/ rn, theta1, R, x3c, x4c, a, b, c, xm, xt, ym, yt, b2, d2, setab, setac
+    common/para/ xbs, ybs, xcs, ycs, c1, c2, c3, c4, c5, c6
     real*8:: xa(USER_LEN), xb(USER_LEN), xc(USER_LEN), ya(USER_LEN), yb(USER_LEN), yc(USER_LEN), thetaa(USER_LEN), thetac(USER_LEN)
+    real*8:: ss_b(USER_LEN), ss_c(USER_LEN), ss_b_new(USER_LEN), ss_c_new(USER_LEN)
+    real*8:: xb_new(USER_LEN), yb_new(USER_LEN), xc_new(USER_LEN), yc_new(USER_LEN)
     ! real*8:: rn, theta1, R, x3c, x4c
     ! real*8:: a, b, c, xm, xt, ym, yt
     real*8:: x1, x2, x3, x4
@@ -386,14 +389,94 @@
         endif
 
         ! cal. the arc length of outter-line (integal along the y direction)
-	    ! call simpson(ss(i), 0.d0, yb(i))
+	    call simpson_curve(ss_b(i), d2, xb(i), 1)
+        call simpson_curve(ss_c(i), ((- 1.d0) * xt * rn), xc(i), 2)
     
     enddo
     
+    !!!!!!!!!!!!!!!!!!!!
+    ! Test module
+    ! Adjust mesh points near the conjunction points to smooth the connection
+
+    ! i_conjunction - find the point nearest to the conjection point
+    do i = 1, nx_tot
+        s = sx_wall_tot(i) * SLX_total
+	    if (s .gt. SLX_part(1)) then
+           i_conjunction = i
+           goto 101
+		endif
+	enddo
+
+101 continue
     write(*, *)
-    write(*, *) "Writing the coor. of the points on the three boudaries: wall, shock wave, farfield ......"
+    write(*, *) "The point found nearest to the conjection point: ID = ", i_conjunction
     write(99, *)
-    write(99, *) "Writing the coor. of the points on the three boudaries: wall, shock wave, farfield ......"
+    write(99, *) "The point found nearest to the conjection point: ID = ", i_conjunction
+    
+    ! important module
+    ! Adjust mesh points near the conjunction points to smooth the connection
+	call adjust_outter(nx_tot, ss_b, ss_b_new, i_conjunction, nxconjuction)
+    write(*, *)
+    write(*, *) "Finish to adjust the outer parabolic-line boundary!"
+    write(99, *)
+    write(99, *) "Finish to adjust the outer parabolic-line boundary!"
+    call adjust_outter(nx_tot, ss_c, ss_c_new, i_conjunction, nxconjuction)
+    write(*, *)
+    write(*, *) "Finish to adjust the shock wave boundary!"
+    write(99, *)
+    write(99, *) "Finish to adjust the shock wave boundary!"
+     
+	do i = 1, nx_tot
+	    call get_x_form_ss(ss_b_new(i), xb_new(i), -1.d0, 1)
+        call get_x_form_ss(ss_c_new(i), xc_new(i), -1.d0, 2)
+    enddo
+
+    open(33, file = 'xb_comp.dat')
+    do i = 1, nx_tot
+	    write(33, '(6f16.8)') i * 1., xb(i), xb_new(i)
+    enddo
+    open(33, file = 'xc_comp.dat')
+    do i = 1, nx_tot
+	    write(33, '(6f16.8)') i * 1., xc(i), xc_new(i)
+    enddo
+    
+    do i = 1, nx_tot
+
+        ! located on the parabolic line
+        if (xb_new(i) .lt. xbs) then
+            yb_new(i) = sqrt(((xb_new(i) - d2) * 1.d0) / (b2 * 1.d0))
+		else
+            yb_new(i) = ybs + (xb_new(i) - xbs) * tan(setab)
+        endif
+        
+        ! located on the shock wave
+        if (xc_new(i) .lt. xcs) then
+            yc_new(i) = c1 * (((c2 * xc_new(i) + c3) ** c4 - 1.d0) ** c5) + c6
+		else
+            yc_new(i) = ycs + (xc_new(i) - xcs) * tan(setac)
+		endif
+	
+    enddo
+
+    open(55, file = "grid1d_comp.dat")
+    do i = 1, nx_tot
+        write(55, "(10f15.6)") xa(i), ya(i), xb(i), yb(i), xb_new(i), yb_new(i), xc(i), yc(i), xc_new(i), yc_new(i)
+    enddo
+    close(55)
+    
+    ! Update the mesh (xb, yb) --> new mesh (xb_new, yb_new)
+    !                 (xc, yc) --> new mesh (xc_new, yc_new)
+    xb = xb_new
+	yb = yb_new
+    xc = xc_new
+	yc = yc_new
+    
+    !!!!!!!!!!!!!!!!!!!!
+    
+    write(*, *)
+    write(*, *) "Writing the grids on the three boudaries: wall, shock wave, farfield ......"
+    write(99, *)
+    write(99, *) "Writing the grids on the three boudaries: wall, shock wave, farfield ......"
     !open(77, file = "x_curves_coor.dat")
     !do i = 1, nx_tot
     !    write(77, *) i, xa(i), ya(i), xc(i), yc(i), xb(i), yb(i)
@@ -1397,6 +1480,142 @@
         betat_get = betat
 
     end subroutine
+    
+    !-------------------------------------------
+    ! complex simpson integral formula
+    subroutine simpson_curve(s, xa, xb, IFLAG_curve)
+    implicit doubleprecision (a - h, o - z)
+    integer, parameter:: nx = 100
+
+        dx = (xb - xa) / (nx - 1.d0)
+        s1 = 0.d0
+        s2 = 0.d0
+        do k = 2, nx
+            x = xa + (k - 1.d0) * dx - dx / 2.d0
+            if (IFLAG_curve == 1) then
+                s1 = s1 + funb(x)
+            else if (IFLAG_curve == 2) then
+                s1 = s1 + func(x)
+            endif
+        enddo
+        do k = 2, nx - 1
+            x = xa + (k - 1.d0) * dx
+            if (IFLAG_curve == 1) then
+                s2 = s2 + funb(x)
+            else if (IFLAG_curve == 2) then
+                s2 = s2 + func(x)
+            endif
+        enddo
+        if (IFLAG_curve == 1) then
+            s = (funb(xa) + funb(xb) + 4.d0 * s1 + 2.d0 * s2) * dx / 6.d0
+        else if (IFLAG_curve == 2) then
+            s = (func(xa) + func(xb) + 4.d0 * s1 + 2.d0 * s2) * dx / 6.d0
+        endif
+
+    end
+
+    ! Farfield: parabolic-line curve ds = sqrt(1 + y' ** 2)
+    ! cal. the arc length differential
+    ! Note: integal by x direction
+	function funb(x)
+	implicit doubleprecision (a - h, o - z)
+    common/para/ b2, d2, setab, xbs, ybs
+
+        ! funs = cos(x)
+        ! parabolic: y = b * x * x + d
+        if (x .lt. xbs) then
+            y = sqrt(((x - d2) * 1.d0) / (b2 * 1.d0))
+            funb = sqrt(1.d0 + (((1.d0 / (2.d0 * b2 * y))) ** 2))  ! x is r ; located in the parabolic line
+        else
+            funb = 1.d0 / cos(setab)                 ! linear  
+        endif
+
+    end
+    
+    ! Shock wave: ds = sqrt(1 + y' ** 2)
+    ! cal. the arc length differential
+    ! Note: integal by x direction
+	function func(x)
+	implicit doubleprecision (a - h, o - z)
+    common/para/ c1, c2, c3, c4, c5, c6, xcs, ycs, setac
+
+        ! funs = cos(x)
+        ! parabolic: y = b * x * x + d
+        if (x .lt. xcs) then
+            ! y = c1 * (((c2 * x + c3) ** c4 - 1.d0) ** c5) + c6
+            yd = (c1 * c2 * c4 * c5) * (((c2 * x + c3) ** c4 - 1.d0) ** (c5 - 1.d0)) * ((c2 * x + c3) ** (c4 - 1.d0))
+            func = sqrt(1.d0 + (yd ** 2))            ! shock wave fitting curve
+        else
+            func = 1.d0 / cos(setac)                 ! linear  
+        endif
+
+	end
+
+    !---------------------------------------------
+    subroutine get_x_form_ss(sa, x, x0, IFLAG_curve)
+    implicit doubleprecision (a - h, o - z)
+    ! real*8, parameter:: dx = 0.001d0
+    common/para/ d2, xt, rn
+	
+        x = x0
+
+100     continue
+		
+        if (IFLAG_curve == 1) then
+            call simpson_curve(s, d2, x, IFLAG_curve)
+            sx = funb(x)
+        else if (IFLAG_curve == 2) then
+            call simpson_curve(s, ((- 1.d0) * xt * rn), x, IFLAG_curve)
+            sx = func(x)
+        endif
+        xnew = x - (s - sa) / sx
+        
+        if (abs(x - xnew) .gt. 1.d-6) then
+            x = xnew
+		    goto 100
+        endif
+        
+        x = xnew
+
+    end
+    
+    !--------------------------------------------
+    ! 调整外边界的网格，使得连接点附近弧长间距光滑过渡
+    ! 采用三次函数来过渡
+    subroutine adjust_outter(nx, ss, ss_new, i_conjunction, nxconjunction_buffer)
+    implicit doubleprecision (a - h, o - z)
+    real*8 ss(nx), ss_new(nx)
+
+        ss_new = ss
+
+        n2 = nxconjunction_buffer / 2
+        ia = i_conjunction - n2
+        ib = i_conjunction + n2
+
+        det1 = ss(ia) - ss(ia - 1)
+        det2 = ss(ib + 1) - ss(ib)
+        ds = 1.d0 / (2.d0 * n2)
+        
+        do i = 1, 2 * n2 + 1
+        
+            s = (i - 1.d0) * ds
+            xh0 = (1.d0 + 2.d0 * s) * (s - 1.d0) ** 2
+            xh1 = (1.d0 + 2.d0 * (1.d0 - s)) * s * s
+            xhf0 = s * (s - 1.d0) ** 2
+            xhf1 = (s - 1.d0) * s * s
+
+            ss_new(i + ia - 1) = ss(ia) * xh0 + ss(ib) * xh1 + det1 / ds * xhf0 + det2 / ds * xhf1
+        
+        enddo
+
+     !   open(55, file = "ss.dat")
+     !   do k = 2, nx
+     !       write(55, "(I3,4f16.8)") k, ss(k), ss_new(k), & 
+     !                                ss(k) - ss(k - 1),  &
+     !                                ss_new(k) - ss_new(k - 1)
+	    !enddo
+
+	end
     
     subroutine get_Jacobian(nx, ny, xx, yy)
     implicit doubleprecision(a - h, o - z)
