@@ -16,7 +16,7 @@
  #  [Grid parameters]
  #  [Global grid number & Partition strategy]
  #  nx_tot      ny_tot
-    1000        300
+    1000         300
  #  num_x_part     num_y_part       nx_ratio_array          ny_ratio_array
     3              2                0.15  0.45  0.40        0.85  0.15
  #  [Grid Type - x - streamwise direction]

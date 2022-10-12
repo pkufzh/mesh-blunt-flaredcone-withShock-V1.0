@@ -72,7 +72,7 @@
     real*8:: SLX_total
     real*8:: SLY_part(USER_PARA, USER_LEN), sy_tot(USER_LEN, USER_LEN)
     real*8:: SLY_total(USER_LEN)
-    real*8:: xx(USER_LEN, USER_LEN), yy(USER_LEN, USER_LEN), xx_tmp(USER_LEN), yy_tmp(USER_LEN)
+    real*8:: xx(USER_LEN, USER_LEN), yy(USER_LEN, USER_LEN), xx_tmp(USER_LEN), yy_tmp(USER_LEN), xx_new(USER_LEN, USER_LEN), yy_new(USER_LEN, USER_LEN)
     real*8:: delta_first_array(USER_PARA), delta_final_array(USER_PARA)
     real*8:: delta_y_first_min(USER_PARA), delta_y_first_max(USER_PARA), delta_y_final_min(USER_PARA), delta_y_final_max(USER_PARA)
     real*8:: parax_array_new(USER_PARA), paray_array_new(USER_PARA), paray_min(USER_PARA), paray_max(USER_PARA)
@@ -696,7 +696,9 @@
     write(33, *) 'zone i = ', nx_tot, 'j = ', ny_tot
     do j = 1, ny_tot
         do i = 1, nx_tot
-            write(33, '(7f15.6)') xx(i, j), yy(i, j)
+            xx_new(i, j) = xx(i, ny_tot - j + 1)
+            yy_new(i, j) = yy(i, ny_tot - j + 1)
+            write(33, '(7f15.6)') xx_new(i, j), yy_new(i, j)
         enddo
     enddo
     close(33)
@@ -717,7 +719,7 @@
     write(*, *) "Cal. the Jacobian martix from mesh ..."
     write(99, *)
     write(99, *) "Cal. the Jacobian martix from mesh ..."
-    ! call get_Jacobian(nx_tot, ny_tot, yy_new, xx_new)
+    call get_Jacobian(nx_tot, ny_tot, yy_new, xx_new)
     write(*, *) "Finish writing the Jacobian martix!"
     write(99, *) "Finish writing the Jacobian martix!"
     
@@ -1670,13 +1672,23 @@
     
     subroutine get_Jacobian(nx, ny, xx, yy)
     implicit doubleprecision(a - h, o - z)
-    parameter (LAP = 3)
-    dimension xx(nx, ny), yy(nx, ny)
-	dimension Akx(nx, ny), Aky(nx, ny), Aix(nx, ny), Aiy(nx, ny), Ajac(nx, ny)
-	dimension xk(nx, ny), xi(nx, ny), yk(nx, ny), yi(nx, ny)
-	dimension xx1(1 - LAP : nx, ny), yy1(1 - LAP : nx, ny)
-    dimension d(nx, ny), u(nx, ny), v(nx, ny), T(nx, ny)
+    integer, parameter:: LAP = 3
+    integer, parameter:: USER_PARA = 100, USER_LEN = 2000
+    
+    ! real*8:: xx(nx, ny), yy(nx, ny)  !!!!!
+	! real*8:: Akx(nx, ny), Aky(nx, ny), Aix(nx, ny), Aiy(nx, ny), Ajac(nx, ny)
+	! real*8:: xk(nx, ny), xi(nx, ny), yk(nx, ny), yi(nx, ny)
+	! real*8:: xx1(1 - LAP : nx, ny), yy1(1 - LAP : nx, ny)
+    ! real*8:: d(nx, ny), u(nx, ny), v(nx, ny), T(nx, ny)
+    
+    real*8:: xx(USER_LEN, USER_LEN), yy(USER_LEN, USER_LEN)  !!!!!
+	real*8:: Akx(nx, ny), Aky(nx, ny), Aix(nx, ny), Aiy(nx, ny), Ajac(nx, ny)
+	real*8:: xk(nx, ny), xi(nx, ny), yk(nx, ny), yi(nx, ny)
+	real*8:: xx1(1 - LAP : nx, ny), yy1(1 - LAP : nx, ny), xx2(nx, ny), yy2(nx, ny)
+    real*8:: d(nx, ny), u(nx, ny), v(nx, ny), T(nx, ny)
 
+    
+        
         hx = 1.d0 / (nx - 1.d0)
         hy = 1.d0 / (ny - 1.d0)
 
@@ -1684,6 +1696,8 @@
             do i = 1, nx
                 xx1(i, j) = xx(i, j)
                 yy1(i, j) = yy(i, j)
+                xx2(i, j) = xx(i, j)
+                yy2(i, j) = yy(i, j)
             enddo
         enddo
         do j = 1, ny
@@ -1696,8 +1710,8 @@
 
         call dx0(xx1, xk, nx, ny, hx, LAP)
         call dx0(yy1, yk, nx, ny, hx, LAP)
-        call dy0(xx, xi, nx, ny, hy)
-        call dy0(yy, yi, nx, ny, hy)
+        call dy0(xx2, xi, nx, ny, hy)
+        call dy0(yy2, yi, nx, ny, hy)
         
         Ajac = xk * yi - xi * yk
         Ajac = 1. / Ajac
@@ -1707,8 +1721,8 @@
         Aiy = Ajac * xk
 
         open(55, file = 'OCFD2d-Jacobi.dat', form = 'unformatted')
-        write(55) xx
-        write(55) yy
+        write(55) xx2
+        write(55) yy2
         write(55) Akx
         write(55) Aky
         write(55) Aix
@@ -1716,11 +1730,16 @@
         write(55) Ajac
         close(55)
 
+        open(98, file = 'Jacobian_info.log')
         do j = 1, ny
             do i = 1, nx
-                if (Ajac(i, j) .lt. 1.e-5) print*, i, j, Ajac(i, j)
+                if (Ajac(i, j) .lt. 1.e-5) then
+                    write(*, *) i, j, Ajac(i, j)
+                    write(98, *) i, j, Ajac(i, j)
+                endif
             enddo
         enddo
+        close(98)
 
         ! Write the final mesh
         open(33, file = 'grid.dat')
@@ -1728,7 +1747,7 @@
         write(33, *) 'zone i = ', nx , 'j = ', ny
         do j = 1, ny
             do i = 1, nx
-                write(33, '(7f15.6)') yy(i, j), xx(i, j), Akx(i, j), Aky(i, j),  &
+                write(33, '(7f15.6)') yy2(i, j), xx2(i, j), Akx(i, j), Aky(i, j),  &
                                       Aix(i, j), Aiy(i, j), Ajac(i, j)
             enddo
         enddo
@@ -1754,7 +1773,8 @@
     
     subroutine dx0(f, fx, nx, ny, hx, LAP)
     implicit doubleprecision (a - h, o - z)
-    dimension f(1 - LAP : nx, ny), fx(nx, ny)
+    ! integer, parameter:: USER_PARA = 100, USER_LEN = 2000
+    real*8:: f(1 - LAP : nx, ny), fx(nx, ny)
 
         b1 = 8.d0 / (12.d0 * hx)
         b2 = 1.d0 / (12.d0 * hx)
@@ -1779,7 +1799,7 @@
     !----------------------------------------------
     subroutine dy0(f, fy, nx, ny, hy)
     implicit doubleprecision (a - h, o - z)
-    dimension f(nx, ny), fy(nx, ny)
+    real*8:: f(nx, ny), fy(nx, ny)
     
     b1 = 8.d0 / (12.d0 * hy)
     b2 = 1.d0 / (12.d0 * hy)
