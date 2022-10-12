@@ -66,6 +66,7 @@
     ! integer Mesh_Y_normgrowth_TYPE(USER_PARA), Mesh_Y_firstlayer_TYPE(USER_PARA), Mesh_Y_denseshock_TYPE(USER_PARA)
     integer ID_X(USER_LEN), ID_Y(USER_LEN, USER_LEN), ID_x_flag(USER_PARA + 2), ID_y_flag(USER_LEN, USER_PARA + 2), ID_y_flag_tmp(USER_PARA + 2)
     integer delta_y_first_min_id, delta_y_first_max_id, delta_y_final_min_id, delta_y_final_max_id
+    integer paray_min_id, paray_max_id
     
     real*8:: SLX_part(USER_PARA), SLX_prop(USER_LEN), sx_wall_tot(USER_LEN), SLY_part_tmp(USER_PARA), sy_tot_tmp(USER_LEN)
     real*8:: SLX_total
@@ -74,6 +75,7 @@
     real*8:: xx(USER_LEN, USER_LEN), yy(USER_LEN, USER_LEN), xx_tmp(USER_LEN), yy_tmp(USER_LEN)
     real*8:: delta_first_array(USER_PARA), delta_final_array(USER_PARA)
     real*8:: delta_y_first_min(USER_PARA), delta_y_first_max(USER_PARA), delta_y_final_min(USER_PARA), delta_y_final_max(USER_PARA)
+    real*8:: parax_array_new(USER_PARA), paray_array_new(USER_PARA), paray_min(USER_PARA), paray_max(USER_PARA)
     
     ! read the input parameters
     open(66, file = 'grid2d-blunt-flaredcone-withShock-V2.0.in')
@@ -179,7 +181,7 @@
     call getsx_wall(nx_tot, num_x_part, nx_ratio_array, nx_buff, alfax_buff, &
                     Mesh_X_TYPE, Mesh_X_trans, parax_array, dev_X, &
                     Mesh_X_dense, eta_X, As_X, SLX_part, SLX_total, 1, 1, &
-                    sx_wall_tot, ID_x_flag, delta_first_array, delta_final_array)
+                    sx_wall_tot, ID_x_flag, delta_first_array, delta_final_array, parax_array_new)
 
     ! x grid space = sx(k + 1) - sx(k), k = 1, 2, 3, ..., nx - 1
     ! x_delta_1 = 
@@ -550,6 +552,9 @@
     delta_y_final_min = MAX_INF
     delta_y_final_max = MIN_INF
         
+    paray_min = MAX_INF
+    paray_max = MIN_INF
+        
     do i = 1, nx_tot
         
         ! cal. the length of the curve-normal grid lines
@@ -574,7 +579,7 @@
         call getsx_wall(ny_tot, num_y_part, ny_ratio_array, 0, 0.d0, &
                         Mesh_Y_TYPE, Mesh_Y_trans, paray_array, dev_Y, &
                         Mesh_Y_dense, eta_Y, As_Y, SLY_part_tmp, SLY_total(i), 2, i, &
-                        sy_tot_tmp, id_y_flag_tmp, delta_first_array, delta_final_array)
+                        sy_tot_tmp, id_y_flag_tmp, delta_first_array, delta_final_array, paray_array_new)
         
         do k = 1, num_y_part
             
@@ -596,6 +601,15 @@
                     delta_y_final_max(k) = delta_final_array(k)
                     delta_y_final_max_id = i
                 endif
+            endif
+            
+            if (paray_min(k) > paray_array_new(k)) then
+                paray_min(k) = paray_array_new(k)
+                paray_min_id = i
+            endif
+            if (paray_max(k) < paray_array_new(k)) then
+                paray_max(k) = paray_array_new(k)
+                paray_max_id = i
             endif
     
         enddo
@@ -637,8 +651,10 @@
     ! output deltay info.
     write(*, *)
     write(*, *) "Write Y Grid info ..."
+    write(*, *)
     write(99, *)
     write(99, *) "Write Y Grid info ..."
+    write(99, *)
     do k = 1, num_y_part
         write(*, *) "Y Section", k, "MIN. first deltay = ", delta_y_first_min(k)
         write(*, *) " at ID = ", delta_y_first_min_id
@@ -658,6 +674,16 @@
             write(99, *) "Y Section", k, "MAX. final deltay = ", delta_y_final_max(k)
             write(99, *) " at ID = ", delta_y_final_max_id
         endif
+        write(*, *) "Y Section", k, "MIN. paray = ", paray_min(k)
+        write(*, *) " at ID = ", paray_min_id
+        write(*, *) "Y Section", k, "MAX. paray = ", paray_max(k)
+        write(*, *) " at ID = ", paray_max_id
+        write(*, *)
+        write(99, *) "Y Section", k, "MIN. paray = ", paray_min(k)
+        write(99, *) " at ID = ", paray_min_id
+        write(99, *) "Y Section", k, "MAX. paray = ", paray_max(k)
+        write(99, *) " at ID = ", paray_max_id
+        write(99, *)
     enddo
     
     ! Write the final mesh
@@ -915,7 +941,7 @@
     subroutine getsx_wall(nx, num_x_part, nx_ratio_array, nx_buff, alfax_buff, &
                           Mesh_X_TYPE, Mesh_X_trans, parax_array, dev_X, &
                           Mesh_X_dense, eta_X, As_X, SLX_part, SLX_total, IFLAG_X, IFLAG_CNT, &
-                          sx_wall_tot, id_x, delta_first_array, delta_final_array)
+                          sx_wall_tot, id_x, delta_first_array, delta_final_array, parax_array_new)
     implicit doubleprecision (a - h, o - z)
     ! implicit none
     !real*8, parameter:: PI = 3.1415926535897932
@@ -936,7 +962,7 @@
     ! integer nx, num_x_part, nx_buff, Mesh_X_trans
     integer Mesh_X_TYPE(num_x_part), Mesh_X_dense(num_x_part)
     ! real*8:: alfax_buff, dev_X, SLX_total, alfax_get, alfat_get, betax_get, betat_get
-    real*8:: nx_ratio_array(num_x_part), parax_array(num_x_part)
+    real*8:: nx_ratio_array(num_x_part), parax_array(num_x_part), parax_array_new(num_x_part)
     real*8:: eta_X(num_x_part), As_X(num_x_part), SLX_part(nx)
     
     real*8:: sx_wall_part(nx, num_x_part)
@@ -1011,6 +1037,7 @@
                 if (Mesh_X_trans == 0) then
 
                     call gets_exp_free(nx_tmp, parax_array(k), dev_X, sx_wall_tmp)
+                    parax_array_new(k) = parax_array(k)
                     delta_first = SLX_part(k) * (sx_wall_tmp(2) - sx_wall_tmp(1))
                     
                     if (IFLAG_X == 1) then
@@ -1039,6 +1066,7 @@
                     if (k == 1) then
 
                         call gets_exp_free(nx_tmp, parax_array(k), dev_X, sx_wall_tmp)
+                        parax_array_new(k) = parax_array(k)
                         delta_first = SLX_part(k) * (sx_wall_tmp(2) - sx_wall_tmp(1))
                         
                         if (IFLAG_X == 1) then
@@ -1059,6 +1087,7 @@
                         delta_first = SLX_part(k) * delta_target
                         
                         call gets_exp_fixdelta(nx_tmp, delta_target, dev_X, sx_wall_tmp, alfax_get)
+                        parax_array_new(k) = alfax_get
                         
                         if (IFLAG_X == 1) then
                             write(*, *) "X Section", k, "Mode: Exp. + fixed delta alfat = ", alfax_get
@@ -1084,6 +1113,7 @@
                     endif
                     
                     call gets_exp_densegrid(nx_tmp, parax_array(k), dev_X, eta_X(k), As_X(k), sx_wall_tmp, alfat_get)
+                    parax_array_new(k) = alfat_get
                     delta_first = SLX_part(k) * (sx_wall_tmp(2) - sx_wall_tmp(1))
                     delta_final = SLX_part(k) * (sx_wall_tmp(nx_tmp) - sx_wall_tmp(nx_tmp - 1))
                     
@@ -1114,6 +1144,7 @@
                 if (Mesh_X_trans == 0) then
 
                     call gets_lin_free(nx_tmp, parax_array(k), sx_wall_tmp)
+                    parax_array_new(k) = parax_array(k)
                     delta_first = SLX_part(k) * (sx_wall_tmp(2) - sx_wall_tmp(1))
                     
                     if (IFLAG_X == 1) then
@@ -1142,6 +1173,7 @@
                     if (k == 1) then
 
                         call gets_lin_free(nx_tmp, parax_array(k), sx_wall_tmp)
+                        parax_array_new(k) = parax_array(k)
                         delta_target = (SLX_part(k) * (sx_wall_tmp(2) - sx_wall_tmp(1))) / SLX_part(k)
                         
                         if (IFLAG_X == 1) then
@@ -1162,6 +1194,7 @@
                         delta_first = SLX_part(k) * delta_target
                         
                         call gets_lin_fixdelta(nx_tmp, delta_target, sx_wall_tmp, betax_get)
+                        parax_array_new(k) = betax_get
                         
                         if (IFLAG_X == 1) then
                             write(*, *) "X Section ", k, "Mode: Lin. + fixed delta alfat = ", betax_get
@@ -1186,6 +1219,7 @@
                     endif
 
                     call gets_lin_densegrid(nx_tmp, parax_array(k), eta_X(k), As_X(k), sx_wall_tmp, betat_get)
+                    parax_array_new(k) = betat_get
                     delta_first = SLX_part(k) * (sx_wall_tmp(2) - sx_wall_tmp(1))
                     delta_final = SLX_part(k) * (sx_wall_tmp(nx_tmp) - sx_wall_tmp(nx_tmp - 1))
                     
