@@ -1,0 +1,25 @@
+ #  [Boundary Definition - the shock wave fitting curve]
+    a       b       c       xm      xt      ym      yt		setac
+    0.536411052352383   2.268559528843074   2.164991018049637   26.856187290969899  1.155065139500000   8.850157623426766   -0.001623000000000	15.0
+ #  [Boundary Definition - farfield curve for computation]
+ #  b2       d2       setab
+    0.10     -3.801   16.11
+ #  [Grid parameters]
+ #  [Global grid number & Partition strategy]
+ #  nx_tot      ny_tot
+    1000        400
+ #  num_x_part     num_y_part       nx_ratio_array          ny_ratio_array 
+    3              2                0.15  0.35  0.50        0.70  0.30
+ #  [Grid Type - x - streamwise direction]
+ #  Mesh_X_TYPE - Equal spaced (1), Exp. (2) or Linear (3)         Mesh_X_trans        parax_array             dev_X
+    2    2    2                                                    1                   2.5    2.0    1.5       1.0
+ #  Mesh_X_dense        eta_X                   As_X
+    0    0    0         0.5    0.5    0.5       2.0    1.5    2.0
+ #  [Buffer section] id. = num_x_part + 1
+ #  nx_buff     alfax_buff      nxconjuction
+    20          0.60           10
+ #  [Grid Type - y - wall-normal direction] interpolation involved
+ #  Mesh_Y_TYPE - Equal spaced (1), Exp. (2) or Linear (3)         Mesh_Y_trans        paray_array             dev_Y
+    2    2                                                         1                   5.0    2.5              1.0
+ #  Mesh_Y_dense        eta_Y                   As_Y
+    1    0              0.4    0.5              2.2    1.5                 

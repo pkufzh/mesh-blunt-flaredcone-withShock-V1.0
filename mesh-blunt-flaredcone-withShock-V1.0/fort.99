@@ -1,0 +1,12 @@
+ Enter Mesh_X global generation mode: Expoential grid stretch
+ Detailed X mode: smooth transition
+ X Section           1 Mode: Exp. + free given alfat =    5.00000000000000     
+ X Section           1 First grid height =   1.027106302554459E-003
+ Enter Mesh_X global generation mode: Expoential grid stretch
+ Detailed X mode: smooth transition
+ X Section           2 Mode: Exp. + fixed delta alfat =   0.782258762817693     
+ X Section           2 First grid height =   0.147304055905587     
+ Enter Mesh_X global generation mode: Expoential grid stretch
+ Detailed X mode: smooth transition
+ X Section           3 Mode: Exp. + fixed delta alfat =   7.478746550571516E-002
+ X Section           3 First grid height =   0.321330540522218     

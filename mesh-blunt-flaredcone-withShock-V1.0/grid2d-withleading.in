@@ -1,0 +1,10 @@
+ #  2d grid-generate control file  V3.0
+ #  nx     ny       
+    500    160
+ #  r1      seta1      b2       d2       seta2
+    1.0     7.         0.15     -1.6     20.
+ #  x_end     alfax    nx_buff    alfax_buff    nxconjuction   
+    5.        2.5      20         1.002         10         
+ #  Mesh_Y_TYPE   deltyw_begin    deltyw_end     alfay1   alfay2
+    2             0.004           0.01           0.6      3.0
+ 
