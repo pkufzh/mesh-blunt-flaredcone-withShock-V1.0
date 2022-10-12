@@ -640,15 +640,23 @@
     write(99, *)
     write(99, *) "Write Y Grid info ..."
     do k = 1, num_y_part
-        write(*, *) "Y Section", k, "MIN. first deltay = ", delta_y_first_min(k), "at ID = ", delta_y_first_min_id
-        write(*, *) "Y Section", k, "MAX. first deltay = ", delta_y_first_max(k), "at ID = ", delta_y_first_max_id
-        write(99, *) "Y Section", k, "MIN. first deltay = ", delta_y_first_min(k), "at ID = ", delta_y_first_min_id
-        write(99, *) "Y Section", k, "MAX. first deltay = ", delta_y_first_max(k), "at ID = ", delta_y_first_max_id
+        write(*, *) "Y Section", k, "MIN. first deltay = ", delta_y_first_min(k)
+        write(*, *) " at ID = ", delta_y_first_min_id
+        write(*, *) "Y Section", k, "MAX. first deltay = ", delta_y_first_max(k)
+        write(*, *) " at ID = ", delta_y_first_max_id
+        write(99, *) "Y Section", k, "MIN. first deltay = ", delta_y_first_min(k)
+        write(99, *) " at ID = ", delta_y_first_min_id
+        write(99, *) "Y Section", k, "MAX. first deltay = ", delta_y_first_max(k)
+        write(99, *) " at ID = ", delta_y_first_max_id
         if (Mesh_Y_dense(k) == 1) then
-            write(*, *) "Y Section", k, "MIN. final deltay = ", delta_y_final_min(k), "at ID = ", delta_y_final_min_id
-            write(*, *) "Y Section", k, "MAX. final deltay = ", delta_y_final_max(k), "at ID = ", delta_y_final_max_id
-            write(99, *) "Y Section", k, "MIN. final deltay = ", delta_y_final_min(k), "at ID = ", delta_y_final_min_id
-            write(99, *) "Y Section", k, "MAX. final deltay = ", delta_y_final_max(k), "at ID = ", delta_y_final_max_id
+            write(*, *) "Y Section", k, "MIN. final deltay = ", delta_y_final_min(k)
+            write(*, *) " at ID = ", delta_y_final_min_id
+            write(*, *) "Y Section", k, "MAX. final deltay = ", delta_y_final_max(k)
+            write(*, *) " at ID = ", delta_y_final_max_id
+            write(99, *) "Y Section", k, "MIN. final deltay = ", delta_y_final_min(k)
+            write(99, *) " at ID = ", delta_y_final_min_id
+            write(99, *) "Y Section", k, "MAX. final deltay = ", delta_y_final_max(k)
+            write(99, *) " at ID = ", delta_y_final_max_id
         endif
     enddo
     
