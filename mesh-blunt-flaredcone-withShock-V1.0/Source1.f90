@@ -272,8 +272,7 @@
             ! (xc, yc) - shock wave
             thetaa(i) = (PI / 2.d0) - alfa
             ! common module
-            call getxc_shock_wall_normal(c1, c2, c3, c4, c5, c6, &
-                                         xa(i), ya(i), xcs, ycs, thetaa(i), xc_tmp, yc_tmp, thetac_tmp)
+            call getxc_shock_wall_normal(xa(i), ya(i), thetaa(i), xc_tmp, yc_tmp, thetac_tmp)
             xc(i) = xc_tmp
             yc(i) = yc_tmp
             thetac(i) = thetac_tmp
@@ -298,7 +297,7 @@
             !endif
             
             ! (xb, yb) - parabolic-line farfield
-            call getxb_farfield_shock_normal(xc(i), yc(i), thetac(i), xbs, ybs, xb_tmp, yb_tmp)
+            call getxb_farfield_shock_normal(xc(i), yc(i), thetac(i), xb_tmp, yb_tmp)
             xb(i) = xb_tmp
             yb(i) = yb_tmp
 	    
@@ -315,8 +314,7 @@
             ! (xc, yc) - shock wave
             thetaa(i) = theta1
             ! common module
-            call getxc_shock_wall_normal(c1, c2, c3, c4, c5, c6, &
-                                         xa(i), ya(i), xcs, ycs, thetaa(i), xc_tmp, yc_tmp, thetac_tmp)
+            call getxc_shock_wall_normal(xa(i), ya(i), thetaa(i), xc_tmp, yc_tmp, thetac_tmp)
             xc(i) = xc_tmp
             yc(i) = yc_tmp
             thetac(i) = thetac_tmp
@@ -334,7 +332,7 @@
          !   endif
             
             ! (xb, yb) - parabolic-line farfield
-            call getxb_farfield_shock_normal(xc(i), yc(i), thetac(i), xbs, ybs, xb_tmp, yb_tmp)
+            call getxb_farfield_shock_normal(xc(i), yc(i), thetac(i), xb_tmp, yb_tmp)
             xb(i) = xb_tmp
             yb(i) = yb_tmp
             
@@ -351,14 +349,13 @@
 
             ! (xc, yc) - shock wave
             ! common module
-            call getxc_shock_wall_normal(c1, c2, c3, c4, c5, c6, &
-                                         xa(i), ya(i), xcs, ycs, thetaa(i), xc_tmp, yc_tmp, thetac_tmp)
+            call getxc_shock_wall_normal(xa(i), ya(i), thetaa(i), xc_tmp, yc_tmp, thetac_tmp)
             xc(i) = xc_tmp
             yc(i) = yc_tmp
             thetac(i) = thetac_tmp
 
             ! (xb, yb) - parabolic-line farfield
-            call getxb_farfield_shock_normal(xc(i), yc(i), thetac(i), xbs, ybs, xb_tmp, yb_tmp)
+            call getxb_farfield_shock_normal(xc(i), yc(i), thetac(i), xb_tmp, yb_tmp)
             xb(i) = xb_tmp
             yb(i) = yb_tmp
             
@@ -375,22 +372,21 @@
             
             ! (xc, yc) - shock wave
             ! common module
-            call getxc_shock_wall_normal(c1, c2, c3, c4, c5, c6, &
-                                         xa(i), ya(i), xcs, ycs, thetaa(i), xc_tmp, yc_tmp, thetac_tmp)
+            call getxc_shock_wall_normal(xa(i), ya(i), thetaa(i), xc_tmp, yc_tmp, thetac_tmp)
             xc(i) = xc_tmp
             yc(i) = yc_tmp
             thetac(i) = thetac_tmp
             
             ! (xb, yb) - parabolic-line farfield
-            call getxb_farfield_shock_normal(xc(i), yc(i), thetac(i), xbs, ybs, xb_tmp, yb_tmp)
+            call getxb_farfield_shock_normal(xc(i), yc(i), thetac(i), xb_tmp, yb_tmp)
             xb(i) = xb_tmp
             yb(i) = yb_tmp
             
         endif
 
         ! cal. the arc length of outter-line (integal along the y direction)
-	    call simpson_curve(ss_b(i), d2, xb(i), 1)
-        call simpson_curve(ss_c(i), ((- 1.d0) * xt * rn), xc(i), 2)
+	    call simpson_curve(ss_b(i), 0.d0, yb(i), 1)
+        call simpson_curve(ss_c(i), 0.d0, yc(i), 2)
     
     enddo
     
@@ -427,33 +423,33 @@
     write(99, *) "Finish to adjust the shock wave boundary!"
      
 	do i = 1, nx_tot
-	    call get_x_form_ss(ss_b_new(i), xb_new(i), -1.d0, 1)
-        call get_x_form_ss(ss_c_new(i), xc_new(i), -1.d0, 2)
+	    call get_y_form_ss(ss_b_new(i), yb_new(i), 1.d0, 1)
+        call get_y_form_ss(ss_c_new(i), yc_new(i), 1.d0, 2)
     enddo
 
-    open(33, file = 'xb_comp.dat')
+    open(33, file = 'yb_comp.dat')
     do i = 1, nx_tot
-	    write(33, '(6f16.8)') i * 1., xb(i), xb_new(i)
+	    write(33, '(6f16.8)') i * 1., yb(i), yb_new(i)
     enddo
-    open(33, file = 'xc_comp.dat')
+    open(33, file = 'yc_comp.dat')
     do i = 1, nx_tot
-	    write(33, '(6f16.8)') i * 1., xc(i), xc_new(i)
+	    write(33, '(6f16.8)') i * 1., yc(i), yc_new(i)
     enddo
     
     do i = 1, nx_tot
 
         ! located on the parabolic line
-        if (xb_new(i) .lt. xbs) then
-            yb_new(i) = sqrt(((xb_new(i) - d2) * 1.d0) / (b2 * 1.d0))
+        if (yb_new(i) .lt. ybs) then
+            xb_new(i) = b2 * yb_new(i) * yb_new(i) + d2
 		else
-            yb_new(i) = ybs + (xb_new(i) - xbs) * tan(setab)
+            xb_new(i) = xbs + (yb_new(i) - ybs) / tan(setab)
         endif
         
         ! located on the shock wave
-        if (xc_new(i) .lt. xcs) then
-            yc_new(i) = c1 * (((c2 * xc_new(i) + c3) ** c4 - 1.d0) ** c5) + c6
+        if (yc_new(i) .lt. ycs) then
+            xc_new(i) = ((1.d0 + ((yc_new(i) - c6) / c1) ** (1.d0 / c5)) ** (1.d0 / c4) - c3) / (c2 * 1.d0)
 		else
-            yc_new(i) = ycs + (xc_new(i) - xcs) * tan(setac)
+            xc_new(i) = xcs + (yc_new(i) - ycs) / tan(setac)
 		endif
 	
     enddo
@@ -701,15 +697,16 @@
     end
     
     ! cal. the grid points on the shock wave curve which satisfies the wall-normal requirements
-    subroutine getxc_shock_wall_normal(c1, c2, c3, c4, c5, c6, &
-                                       xa, ya, xcs, ycs, thetaa, xc, yc, thetac)
+    subroutine getxc_shock_wall_normal(xa, ya, thetaa, xc, yc, thetac)
     implicit doubleprecision (a - h, o - z)
     real*8, parameter:: PI = 3.1415926535897932
     real*8, parameter:: MAX_INF = 99999.d0
+    ! common/para/ rn, theta1, R, x3c, x4c, a, b, c, xm, xt, ym, yt, b2, d2, setab, setac
     common/para/ rn, theta1, R, x3c, x4c, a, b, c, xm, xt, ym, yt, b2, d2, setab, setac
+    common/para/ xbs, ybs, xcs, ycs, c1, c2, c3, c4, c5, c6
     
         eps = 1.d-6
-                
+        
         if (xa .le. 0.d0) then
             
          !   ! search (xc, yc) using the slope relation
@@ -818,11 +815,13 @@
     end subroutine
     
     ! cal. the grid points on the farfield curve which satisfies the shock wave-normal requirements
-    subroutine getxb_farfield_shock_normal(xc, yc, thetac, xbs, ybs, xb, yb)
+    subroutine getxb_farfield_shock_normal(xc, yc, thetac, xb, yb)
     implicit doubleprecision (a - h, o - z)
     real*8, parameter:: PI = 3.1415926535897932
     real*8, parameter:: MAX_INF = 99999.d0
+    ! common/para/ rn, theta1, R, x3c, x4c, a, b, c, xm, xt, ym, yt, b2, d2, setab, setac
     common/para/ rn, theta1, R, x3c, x4c, a, b, c, xm, xt, ym, yt, b2, d2, setab, setac
+    common/para/ xbs, ybs, xcs, ycs, c1, c2, c3, c4, c5, c6
         
         eps = 1.d-6
     
@@ -1483,99 +1482,109 @@
     
     !-------------------------------------------
     ! complex simpson integral formula
-    subroutine simpson_curve(s, xa, xb, IFLAG_curve)
+    subroutine simpson_curve(s, ya, yb, IFLAG_curve)
     implicit doubleprecision (a - h, o - z)
-    integer, parameter:: nx = 100
+    integer, parameter:: ny = 100
+    ! common/para/ b2, d2, setab, xbs, ybs
+    ! common/para/ c1, c2, c3, c4, c5, c6, xcs, ycs, setac
+    common/para/ rn, theta1, R, x3c, x4c, a, b, c, xm, xt, ym, yt, b2, d2, setab, setac
+    common/para/ xbs, ybs, xcs, ycs, c1, c2, c3, c4, c5, c6
 
-        dx = (xb - xa) / (nx - 1.d0)
+        dy = (yb - ya) / (ny - 1.d0)
         s1 = 0.d0
         s2 = 0.d0
-        do k = 2, nx
-            x = xa + (k - 1.d0) * dx - dx / 2.d0
+        do k = 2, ny
+            y = ya + (k - 1.d0) * dy - (dy / 2.d0)
             if (IFLAG_curve == 1) then
-                s1 = s1 + funb(x)
+                s1 = s1 + funb(y)
             else if (IFLAG_curve == 2) then
-                s1 = s1 + func(x)
+                s1 = s1 + func(y)
             endif
         enddo
-        do k = 2, nx - 1
-            x = xa + (k - 1.d0) * dx
+        do k = 2, ny - 1
+            y = ya + (k - 1.d0) * dy
             if (IFLAG_curve == 1) then
-                s2 = s2 + funb(x)
+                s2 = s2 + funb(y)
             else if (IFLAG_curve == 2) then
-                s2 = s2 + func(x)
+                s2 = s2 + func(y)
             endif
         enddo
         if (IFLAG_curve == 1) then
-            s = (funb(xa) + funb(xb) + 4.d0 * s1 + 2.d0 * s2) * dx / 6.d0
+            s = (funb(ya) + funb(yb) + 4.d0 * s1 + 2.d0 * s2) * dy / 6.d0
         else if (IFLAG_curve == 2) then
-            s = (func(xa) + func(xb) + 4.d0 * s1 + 2.d0 * s2) * dx / 6.d0
+            s = (func(ya) + func(yb) + 4.d0 * s1 + 2.d0 * s2) * dy / 6.d0
         endif
 
     end
 
-    ! Farfield: parabolic-line curve ds = sqrt(1 + y' ** 2)
+    ! Farfield: parabolic-line curve dsy = sqrt(1 + x' ** 2)
     ! cal. the arc length differential
     ! Note: integal by x direction
-	function funb(x)
+	function funb(y)
 	implicit doubleprecision (a - h, o - z)
-    common/para/ b2, d2, setab, xbs, ybs
+    ! common/para/ b2, d2, setab, xbs, ybs
+    common/para/ rn, theta1, R, x3c, x4c, a, b, c, xm, xt, ym, yt, b2, d2, setab, setac
+    common/para/ xbs, ybs, xcs, ycs, c1, c2, c3, c4, c5, c6
 
         ! funs = cos(x)
-        ! parabolic: y = b * x * x + d
-        if (x .lt. xbs) then
-            y = sqrt(((x - d2) * 1.d0) / (b2 * 1.d0))
-            funb = sqrt(1.d0 + (((1.d0 / (2.d0 * b2 * y))) ** 2))  ! x is r ; located in the parabolic line
+        ! parabolic: x = b2 * y * y + d2
+        if (y .lt. ybs) then
+            ! xd = 2.d0 * b2 * y
+            funb = sqrt(1.d0 + ((2.d0 * b2 * y) ** 2))  ! x is r ; located in the parabolic line
         else
-            funb = 1.d0 / cos(setab)                 ! linear  
+            funb = 1.d0 / sin(setab)                 ! linear  
         endif
 
     end
     
-    ! Shock wave: ds = sqrt(1 + y' ** 2)
+    ! Shock wave: dsy = sqrt(1 + x' ** 2)
     ! cal. the arc length differential
     ! Note: integal by x direction
-	function func(x)
+	function func(y)
 	implicit doubleprecision (a - h, o - z)
-    common/para/ c1, c2, c3, c4, c5, c6, xcs, ycs, setac
+    ! common/para/ c1, c2, c3, c4, c5, c6, xcs, ycs, setac
+    common/para/ rn, theta1, R, x3c, x4c, a, b, c, xm, xt, ym, yt, b2, d2, setab, setac
+    common/para/ xbs, ybs, xcs, ycs, c1, c2, c3, c4, c5, c6
 
         ! funs = cos(x)
         ! parabolic: y = b * x * x + d
-        if (x .lt. xcs) then
+        if (y .lt. ycs) then
             ! y = c1 * (((c2 * x + c3) ** c4 - 1.d0) ** c5) + c6
-            yd = (c1 * c2 * c4 * c5) * (((c2 * x + c3) ** c4 - 1.d0) ** (c5 - 1.d0)) * ((c2 * x + c3) ** (c4 - 1.d0))
-            func = sqrt(1.d0 + (yd ** 2))            ! shock wave fitting curve
+            xd = (((1 + ((y - c6) / c1) ** (1.d0 / c5)) ** ((1.d0 / c4) - 1)) * (((y - c6) / c1) ** ((1.d0 / c5) - 1))) / (c1 * c2 * c4 * c5 * 1.d0)
+            func = sqrt(1.d0 + (xd ** 2))            ! shock wave fitting curve
         else
-            func = 1.d0 / cos(setac)                 ! linear  
+            func = 1.d0 / sin(setac)                 ! linear section
         endif
 
 	end
 
     !---------------------------------------------
-    subroutine get_x_form_ss(sa, x, x0, IFLAG_curve)
+    subroutine get_y_form_ss(sa, y, y0, IFLAG_curve)
     implicit doubleprecision (a - h, o - z)
     ! real*8, parameter:: dx = 0.001d0
-    common/para/ d2, xt, rn
+    ! common/para/ d2, xt, rn
+    common/para/ rn, theta1, R, x3c, x4c, a, b, c, xm, xt, ym, yt, b2, d2, setab, setac
+    common/para/ xbs, ybs, xcs, ycs, c1, c2, c3, c4, c5, c6
 	
-        x = x0
+        y = y0
 
 100     continue
 		
         if (IFLAG_curve == 1) then
-            call simpson_curve(s, d2, x, IFLAG_curve)
-            sx = funb(x)
+            call simpson_curve(s, 0.d0, y, IFLAG_curve)
+            sy = funb(y)
         else if (IFLAG_curve == 2) then
-            call simpson_curve(s, ((- 1.d0) * xt * rn), x, IFLAG_curve)
-            sx = func(x)
+            call simpson_curve(s, 0.d0, y, IFLAG_curve)
+            sy = func(y)
         endif
-        xnew = x - (s - sa) / sx
+        ynew = y - (s - sa) / sy
         
-        if (abs(x - xnew) .gt. 1.d-6) then
-            x = xnew
+        if (abs(y - ynew) .gt. 1.d-6) then
+            y = ynew
 		    goto 100
         endif
         
-        x = xnew
+        y = ynew
 
     end
     
@@ -1587,7 +1596,7 @@
     real*8 ss(nx), ss_new(nx)
 
         ss_new = ss
-
+        
         n2 = nxconjunction_buffer / 2
         ia = i_conjunction - n2
         ib = i_conjunction + n2
