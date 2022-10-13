@@ -59,12 +59,14 @@
     real*8:: dev_X, dev_Y, alfax_buff, delta_yc_trans
     real*8:: nx_ratio_array(USER_PARA), ny_ratio_array(USER_PARA), &
              parax_array(USER_PARA), eta_X(USER_PARA), As_X(USER_PARA), &
-             paray_array(USER_PARA), eta_Y(USER_PARA), As_Y(USER_PARA)
+             paray_array(USER_PARA), paray_array_comb(USER_PARA, USER_PARA), eta_Y(USER_PARA), As_Y(USER_PARA)
     ! real*8:: parayw_array(USER_PARA), parays_array(USER_PARA)
     integer nx_tot, ny_tot, num_x_part, num_y_part, Mesh_X_trans, Mesh_Y_trans, nx_buff, nxconjuction
     integer Mesh_X_TYPE(USER_PARA), Mesh_X_dense(USER_PARA), Mesh_Y_TYPE(USER_PARA), Mesh_Y_dense(USER_PARA)
+    integer Mesh_Y_firstlayer_TYPE(USER_PARA)
     ! integer Mesh_Y_normgrowth_TYPE(USER_PARA), Mesh_Y_firstlayer_TYPE(USER_PARA), Mesh_Y_denseshock_TYPE(USER_PARA)
-    integer ID_X(USER_LEN), ID_Y(USER_LEN, USER_LEN), ID_x_flag(USER_PARA + 2), ID_y_flag(USER_LEN, USER_PARA + 2), ID_y_flag_tmp(USER_PARA + 2)
+    integer ID_X(USER_LEN), ID_Y(USER_LEN, USER_LEN), ID_x_flag(USER_PARA + 2)
+    integer ID_y_flag(USER_LEN, USER_PARA + 2), ID_y_flag_tmp(USER_PARA + 2)
     integer delta_y_first_min_id, delta_y_first_max_id, delta_y_final_min_id, delta_y_final_max_id
     integer paray_min_id, paray_max_id
     
@@ -72,9 +74,11 @@
     real*8:: SLX_total
     real*8:: SLY_part(USER_PARA, USER_LEN), sy_tot(USER_LEN, USER_LEN)
     real*8:: SLY_total(USER_LEN)
-    real*8:: xx(USER_LEN, USER_LEN), yy(USER_LEN, USER_LEN), xx_tmp(USER_LEN), yy_tmp(USER_LEN), xx_new(USER_LEN, USER_LEN), yy_new(USER_LEN, USER_LEN)
+    real*8:: xx(USER_LEN, USER_LEN), yy(USER_LEN, USER_LEN), xx_tmp(USER_LEN), yy_tmp(USER_LEN)
+    real*8:: xx_new(USER_LEN, USER_LEN), yy_new(USER_LEN, USER_LEN)
     real*8:: delta_first_array(USER_PARA), delta_final_array(USER_PARA)
-    real*8:: delta_y_first_min(USER_PARA), delta_y_first_max(USER_PARA), delta_y_final_min(USER_PARA), delta_y_final_max(USER_PARA)
+    real*8:: delta_y_first_min(USER_PARA), delta_y_first_max(USER_PARA)
+    real*8:: delta_y_final_min(USER_PARA), delta_y_final_max(USER_PARA)
     real*8:: parax_array_new(USER_PARA), paray_array_new(USER_PARA), paray_min(USER_PARA), paray_max(USER_PARA)
     
     ! read the input parameters
@@ -124,14 +128,17 @@
     !read(66, *) (Mesh_Y_firstlayer_TYPE(j), j = 1, num_y_part), (parayw_array(i), j = 1, num_y_part)
     !read(66, *)
     !read(66, *) (Mesh_Y_denseshock_TYPE(j), j = 1, num_y_part), (parays_array(i), j = 1, num_y_part)
-    read(66, *) (Mesh_Y_TYPE(i), i = 1, num_y_part), Mesh_Y_trans, (paray_array(i), i = 1, num_y_part), dev_Y
+    ! (num = num_x_part * num_y_part)
+    read(66, *) (Mesh_Y_firstlayer_TYPE(j), j = 1, num_y_part), ((paray_array_comb(i, j), i = 1, (num_x_part + 1)), j = 1, num_y_part)
     read(66, *)
-    read(66, *) (Mesh_Y_dense(i), i = 1, num_y_part), (eta_Y(i), i = 1, num_y_part), (As_Y(i), i = 1, num_y_part)
+    read(66, *) (Mesh_Y_TYPE(j), j = 1, num_y_part), Mesh_Y_trans, dev_Y  ! (paray_array(j), j = 1, num_y_part)
+    read(66, *)
+    read(66, *) (Mesh_Y_dense(j), j = 1, num_y_part), (eta_Y(j), j = 1, num_y_part), (As_Y(j), j = 1, num_y_part)
     close(66)
 
     ! allocate(SLX_part(:), SLX_prop(:), sx_wall_tot(:))
     
-    !allocate(sx(nx), sy(nx, ny), xa(nx), xb(nx),  &
+    ! allocate(sx(nx), sy(nx, ny), xa(nx), xb(nx),  &
     !         ya(nx), yb(nx), SL(nx), delty(nx), xx(nx, ny), yy(nx, ny),  &
     !         ss(nx), ss_new(nx), xb_new(nx), yb_new(nx))
  
@@ -575,6 +582,44 @@
         !do k = 1, num_y_part
         !    SLY_prop(k) = SLY_part_tmp(k) / SLY_total(i)
         !enddo
+        
+        s = sx_wall_tot(i) * SLX_total
+                
+        do k = 1, num_y_part
+            
+            if (Mesh_Y_firstlayer_TYPE(k) == 1) then
+                
+                if (s .le. SLX_part(1)) then
+                    paray_array(k) = paray_array_comb(1, k)
+                else if ((s .gt. SLX_part(1)) .and. (s .le. (SLX_part(1) + SLX_part(2)))) then
+                    paray_array(k) = paray_array_comb(2, k)
+                else if (s .gt. (SLX_part(1) + SLX_part(2))) then
+                    paray_array(k) = paray_array_comb(3, k)
+                endif
+                
+            else if (Mesh_Y_firstlayer_TYPE(k) == 2) then
+                
+                if (s .le. SLX_part(1)) then
+                    gap_tmp = ((i - ID_x_flag(1)) * 1.d0) / ((ID_x_flag(2) - ID_x_flag(1)) * 1.d0)
+                    paray_array(k) = paray_array_comb(1, k) + &
+                                     (gap_tmp * (paray_array_comb(2, k) - paray_array_comb(1, k)))
+                else if ((s .gt. SLX_part(1)) .and. (s .le. (SLX_part(1) + SLX_part(2)))) then
+                    gap_tmp = ((i - ID_x_flag(2)) * 1.d0) / ((ID_x_flag(3) - ID_x_flag(2)) * 1.d0)
+                    paray_array(k) = paray_array_comb(2, k) + &
+                                     (gap_tmp * (paray_array_comb(3, k) - paray_array_comb(2, k)))
+                else if ((s .gt. (SLX_part(1) + SLX_part(2))) .and. (s .le. SLX_total)) then
+                    gap_tmp = ((i - ID_x_flag(3)) * 1.d0) / ((ID_x_flag(4) - ID_x_flag(3)) * 1.d0)
+                    paray_array(k) = paray_array_comb(3, k) + &
+                                     (gap_tmp * (paray_array_comb(4, k) - paray_array_comb(3, k)))
+                else if (s .gt. SLX_total) then
+                    paray_array(k) = paray_array_comb(4, k)
+                endif
+                
+            endif
+            
+        enddo
+            
+        ! Mesh_Y_firstlayer_TYPE(j)
         
         ! vary paray_array
         call getsx_wall(ny_tot, num_y_part, ny_ratio_array, 0, 0.d0, &
