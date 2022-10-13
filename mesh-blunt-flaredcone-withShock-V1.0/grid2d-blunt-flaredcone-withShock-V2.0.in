@@ -21,7 +21,7 @@
     3              2                0.15  0.45  0.40        0.85  0.15
  #  [Grid Type - x - streamwise direction]
  #  Mesh_X_TYPE - Equal spaced (1), Exp. (2) or Linear (3)         Mesh_X_trans        parax_array             dev_X
-    2    2    2                                                    1                   2.0    2.0    1.5       1.0
+    2    2    2                                                    1                   2.5    2.0    1.5       1.0
  #  Mesh_X_dense        eta_X                   As_X
     0    0    0         0.5    0.5    0.5       2.0    1.5    2.0
  #  [Buffer section] id. = num_x_part + 1

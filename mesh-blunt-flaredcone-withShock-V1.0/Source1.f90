@@ -576,6 +576,7 @@
         !    SLY_prop(k) = SLY_part_tmp(k) / SLY_total(i)
         !enddo
         
+        ! vary paray_array
         call getsx_wall(ny_tot, num_y_part, ny_ratio_array, 0, 0.d0, &
                         Mesh_Y_TYPE, Mesh_Y_trans, paray_array, dev_Y, &
                         Mesh_Y_dense, eta_Y, As_Y, SLY_part_tmp, SLY_total(i), 2, i, &
