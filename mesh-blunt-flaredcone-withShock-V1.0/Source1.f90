@@ -14,6 +14,7 @@
 !--------------------------------------------------------------
 
 ! Developed by Zhenghao Feng on October 2022
+! 2D Beta V1.0 Finished by Zhenghao Feng on 14 Oct 2022
 
     ! ! Parameter declaration
     ! implicit doubleprecision (a - h, o - z)
@@ -22,21 +23,7 @@
     ! real*8, allocatable:: ss(:), ss_new(:), xb_new(:), yb_new(:)
     ! real*8, allocatable:: xx(:,:), yy(:,:)
     ! common/para/ b2, d2, seta2, ys
-
-    ! open(66, file = 'grid2d-withleading.in')
-    ! read(66, *)
-    ! read(66, *) 
-    ! read(66, *) nx, ny
-    ! read(66, *)
-    ! read(66, *) r1, seta1, b2, d2, seta2
-    ! read(66, *)
-    ! ! read(66, *) S0, alfay
-    ! read(66, *) x_end, alfax, nx_buff, alfax_buff, nxconjunction_buffer
-    ! read(66, *)
-    ! read(66, *) IFLAG_MESHY_TYPE, deltyw_i_begin, deltyw_i_end, alfay1, alfay2 
-    ! read(66,*)
-    ! close(66)
-
+    
     ! Parameter declaration
     implicit doubleprecision (a - h, o - z)
     ! implicit none
@@ -62,7 +49,7 @@
              parax_array(USER_PARA), eta_X(USER_PARA), As_X(USER_PARA), &
              paray_array(USER_PARA), paray_array_comb(USER_PARA, USER_PARA), eta_Y(USER_PARA), As_Y(USER_PARA)
     ! real*8:: parayw_array(USER_PARA), parays_array(USER_PARA)
-    integer nx_tot, ny_tot, num_x_part, num_y_part, Mesh_X_trans, Mesh_Y_trans, nx_buff, nxconjuction
+    integer nx_tot, ny_tot, nx_skip, num_x_part, num_y_part, Mesh_X_trans, Mesh_Y_trans, nx_buff, nxconjuction
     integer Mesh_X_TYPE(USER_PARA), Mesh_X_dense(USER_PARA), Mesh_Y_TYPE(USER_PARA), Mesh_Y_dense(USER_PARA)
     integer Mesh_Y_firstlayer_TYPE(USER_PARA)
     ! integer Mesh_Y_normgrowth_TYPE(USER_PARA), Mesh_Y_firstlayer_TYPE(USER_PARA), Mesh_Y_denseshock_TYPE(USER_PARA)
@@ -108,7 +95,7 @@
     read(66, *)
     ! [Grid parameters]
     ! [Global grid number & Partition strategy]
-    read(66, *) nx_tot, ny_tot
+    read(66, *) nx_tot, ny_tot, nx_skip
     read(66, *)
     read(66, *) num_x_part, num_y_part, (nx_ratio_array(i), i = 1, num_x_part), (ny_ratio_array(j), j = 1, num_y_part)
     read(66, *)
@@ -183,7 +170,7 @@
         SLX_prop(k) = SLX_part(k) / SLX_total
     enddo
     
-    nx_tot = nx_tot + 1
+    nx_tot = nx_tot + nx_skip
     
     ! generate the grid in streamwise direction (x direction)
     ! sx_wall is always between [0, 1]
@@ -200,8 +187,8 @@
     write(99, *)
     write(99, *) "Writing the sx [0, 1] on the model wall ......"
     open(55, file = "sx_wall.dat")
-    do k = 1, nx_tot
-        write(55, *) k, sx_wall_tot(k), sx_wall_tot(k + 1) - sx_wall_tot(k)
+    do k = 1 + nx_skip, nx_tot
+        write(55, '(3f16.8)') (k - nx_skip) * 1.d0, sx_wall_tot(k), sx_wall_tot(k + 1) - sx_wall_tot(k)
     enddo
     write(*, *) "Finish writing!"
     write(99, *) "Finish writing!"
@@ -440,12 +427,12 @@
     enddo
 
     open(33, file = 'yb_comp.dat')
-    do i = 1, nx_tot
-	    write(33, '(6f16.8)') i * 1., yb(i), yb_new(i)
+    do i = 1 + nx_skip, nx_tot
+	    write(33, '(3f16.8)') (i - nx_skip) * 1.d0, yb(i), yb_new(i)
     enddo
     open(33, file = 'yc_comp.dat')
-    do i = 1, nx_tot
-	    write(33, '(6f16.8)') i * 1., yc(i), yc_new(i)
+    do i = 1 + nx_skip, nx_tot
+	    write(33, '(3f16.8)') (i - nx_skip) * 1.d0, yc(i), yc_new(i)
     enddo
     
     do i = 1, nx_tot
@@ -467,7 +454,7 @@
     enddo
 
     open(55, file = "grid1d_comp.dat")
-    do i = 1, nx_tot
+    do i = 1 + nx_skip, nx_tot
         write(55, "(10f15.6)") xa(i), ya(i), xb(i), yb(i), xb_new(i), yb_new(i), xc(i), yc(i), xc_new(i), yc_new(i)
     enddo
     close(55)
@@ -492,32 +479,32 @@
     write(*, *) "Writing the coor. xa ..."
     write(99, *) "Writing the coor. xa ..."
     open(77, file = "xa.dat")
-    do i = 1, nx_tot
-        write(77, *) i, ID_X(i), xa(i), ya(i)
+    do i = 1 + nx_skip, nx_tot
+        write(77, '(4f16.8)') (i - nx_skip) * 1.d0, ID_X(i), xa(i), ya(i)
     enddo
     write(*, *) "Writing the coor. xb ..."
     write(99, *) "Writing the coor. xb ..."
     open(77, file = "xb.dat")
-    do i = 1, nx_tot
-        write(77, *) i, ID_X(i), xb(i), yb(i)
+    do i = 1 + nx_skip, nx_tot
+        write(77, '(4f16.8)') (i - nx_skip) * 1.d0, ID_X(i), xb(i), yb(i)
     enddo
     write(*, *) "Writing the coor. xc ..."
     write(99, *) "Writing the coor. xc ..."
     open(77, file = "xc.dat")
-    do i = 1, nx_tot
-        write(77, *) i, ID_X(i), xc(i), yc(i) !, thetac(i)
+    do i = 1 + nx_skip, nx_tot
+        write(77, '(4f16.8)') (i - nx_skip) * 1.d0, ID_X(i), xc(i), yc(i) !, thetac(i)
     enddo
     write(*, *) "Writing the angle theta_xa ..."
     write(99, *) "Writing the angle theta_xa ..."
     open(77, file = "theta_xa.dat")
-    do i = 1, nx_tot
-        write(77, *) i, ID_X(i), thetaa(i)
+    do i = 1 + nx_skip, nx_tot
+        write(77, '(3f16.8)') (i - nx_skip) * 1.d0, ID_X(i), thetaa(i)
     enddo
     write(*, *) "Writing the angle theta_xc ..."
     write(99, *) "Writing the angle theta_xc ..."
     open(77, file = "theta_xc.dat")
-    do i = 1, nx_tot
-        write(77, *) i, ID_X(i), thetac(i)
+    do i = 1 + nx_skip, nx_tot
+        write(77, '(3f16.8)') (i - nx_skip) * 1.d0, ID_X(i), thetac(i)
     enddo
     write(*, *) "Finish writing!"
     write(*, *)
@@ -740,21 +727,21 @@
     write(*, *) "Writing the final mesh ..."
     write(99, *)
     write(99, *) "Writing the final mesh ..."
-    open(33, file = 'grid_xy.dat')
-    write(33, *) 'variables = x, y'
-    write(33, *) 'zone i = ', nx_tot, 'j = ', ny_tot
+    !open(33, file = 'grid_xy.dat')
+    !write(33, *) 'variables = x, y'
+    !write(33, *) 'zone i = ', nx_tot, 'j = ', ny_tot
     do j = 1, ny_tot
-        do i = 2, nx_tot
+        do i = 1, nx_tot
             xx_new(i, j) = xx(i, ny_tot - j + 1)
             yy_new(i, j) = yy(i, ny_tot - j + 1)
             write(33, '(7f15.6)') xx_new(i, j), yy_new(i, j)
         enddo
     enddo
-    close(33)
+    !close(33)
     open(33, file = 'grid_xy_plot.dat')
-    write(33, *) nx_tot, ny_tot
+    write(33, *) nx_tot - nx_skip, ny_tot
     do j = 1, ny_tot
-        do i = 2, nx_tot
+        do i = 1 + nx_skip, nx_tot
             write(33, '(7f15.6)') xx(i, j), yy(i, j)
         enddo
     enddo
@@ -768,7 +755,7 @@
     write(*, *) "Cal. the Jacobian martix from mesh ..."
     write(99, *)
     write(99, *) "Cal. the Jacobian martix from mesh ..."
-    call get_Jacobian(nx_tot - 1, ny_tot, yy_new, xx_new)
+    call get_Jacobian(nx_tot - nx_skip, ny_tot, yy_new, xx_new, nx_skip)
     write(*, *) "Finish writing the Jacobian martix!"
     write(99, *) "Finish writing the Jacobian martix!"
     
@@ -1719,8 +1706,9 @@
 
 	end
     
-    subroutine get_Jacobian(nx, ny, xx, yy)
+    subroutine get_Jacobian(nx, ny, xx, yy, nx_skip)
     implicit doubleprecision(a - h, o - z)
+    ! notice the wall boundary condition order
     integer, parameter:: LAP = 3
     integer, parameter:: USER_PARA = 100, USER_LEN = 2000
     
@@ -1741,17 +1729,17 @@
 
         do j = 1, ny
             do i = 1, nx
-                xx1(i, j) = xx(i + 1, j)
-                yy1(i, j) = yy(i + 1, j)
-                xx2(i, j) = xx(i + 1, j)
-                yy2(i, j) = yy(i + 1, j)
+                xx1(i, j) = xx(i + nx_skip, j)
+                yy1(i, j) = yy(i + nx_skip, j)
+                xx2(i, j) = xx(i + nx_skip, j)
+                yy2(i, j) = yy(i + nx_skip, j)
             enddo
         enddo
         do j = 1, ny
             do i = 1, LAP
                 i1 = 1 - i
-                xx1(i1, j) = - xx(i + 1, j)
-                yy1(i1, j) = yy(i + 1, j)
+                xx1(i1, j) = - xx(i + nx_skip, j)
+                yy1(i1, j) = yy(i + nx_skip, j)
             enddo
         enddo
 
@@ -1777,7 +1765,7 @@
         write(55) Ajac
         close(55)
 
-        open(98, file = 'Jacobian_info.log')
+        open(98, file = 'Jacobian_Warning_info.log')
         do j = 1, ny
             do i = 1, nx
                 if (Ajac(i, j) .lt. 1.e-5) then
@@ -1794,13 +1782,14 @@
         write(33, *) 'zone i = ', nx , 'j = ', ny
         do j = 1, ny
             do i = 1, nx
-                write(33, '(7f15.6)') yy2(i, j), xx2(i, j), Akx(i, j), Aky(i, j),  &
+                write(33, '(7f15.6)') yy2(i, j), xx2(i, j), Akx(i, j), Aky(i, j), &
                                       Aix(i, j), Aiy(i, j), Ajac(i, j)
             enddo
         enddo
         close(33)
 
-        ! Generate initial data ... 
+        ! Generate initial data ...
+        ! may add the disturbance profile? new module needed!
         Istep = 0
         tt = 0.
         d = 1.
@@ -1873,62 +1862,6 @@
     enddo
 
     end
-    
-    ! subroutine find_n_id(n_array)
-
-    ! alfax = 2.5;
-    ! n = 500;
-    ! eta = 0.5;
-    ! err = 1e-6;
-    ! As = 2.0;
-
-    ! sx = zeros(n, 1);
-    ! sx1 = zeros(n - 1, 1);
-    ! for i = 1 : n
-    !     sx(i) = As * ((exp(((i - 1) / (n - 1)) * alfax) - 1) / (exp(alfax) - 1));
-    ! end
-
-    ! nd = find(abs(sx - eta) == min(abs(sx - eta)))
-    ! an = (n - nd) / (n - 1)
-
-    ! % dx = 1 / (n - 1);
-    ! alfab = alfax;
-
-    ! flag_find_nd = 0;
-    ! while (flag_find_nd == 0)
-
-    !     fb = (exp(an * alfab) - 1) / (exp(alfab) - 1) - ((1 - eta) / As);
-    !     fbx = ((an * exp(an * alfab) * (exp(alfab) - 1)) - (exp(alfab) * (exp(an * alfab) - 1))) / ((exp(alfab) - 1) ^ 2);
-
-    !     alfab_new = alfab - (fb / fbx);
-
-    !     if (abs(alfab - alfab_new) > err)
-    !         alfab = alfab_new;
-    !     else
-    !         alfab_final = alfab_new
-    !         flag_find_nd = 1;
-    !     end
-
-    ! end
-
-    ! for i = 1 : n
-    !     if (i <= nd)
-    !         sx(i) = As * ((exp(((i - 1) / (n - 1)) * alfax) - 1) / (exp(alfax) - 1));
-    !     else
-    !         sx(i) = (1 - As * ((exp(((n - i) / (n - 1)) * alfab_final) - 1) / (exp(alfab_final) - 1)));
-    !     end
-    ! end
-
-    ! for i = 1 : n - 1
-    !     sx1(i) = sx(i + 1) - sx(i);
-    ! end
-
-    ! sx(nd) - sx(nd - 1)
-    ! sx1(end)
-
-
-
-
 
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
