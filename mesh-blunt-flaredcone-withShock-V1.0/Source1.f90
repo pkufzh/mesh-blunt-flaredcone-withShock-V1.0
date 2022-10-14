@@ -58,7 +58,8 @@
     integer delta_y_first_min_id, delta_y_first_max_id, delta_y_final_min_id, delta_y_final_max_id
     integer paray_min_id, paray_max_id
     
-    real*8:: SLX_part(USER_PARA), SLX_prop(USER_LEN), sx_wall_tot(USER_LEN), SLY_part_tmp(USER_PARA), sy_tot_tmp(USER_LEN)
+    real*8:: SLX_part(USER_PARA), SLX_prop(USER_LEN), sx_wall_tot(USER_LEN), &
+             SLY_part_tmp(USER_PARA), sy_tot_tmp(USER_LEN)
     real*8:: SLX_total
     real*8:: SLY_part(USER_PARA, USER_LEN), sy_tot(USER_LEN, USER_LEN)
     real*8:: SLY_total(USER_LEN)
@@ -67,7 +68,8 @@
     real*8:: delta_first_array(USER_PARA), delta_final_array(USER_PARA)
     real*8:: delta_y_first_min(USER_PARA), delta_y_first_max(USER_PARA)
     real*8:: delta_y_final_min(USER_PARA), delta_y_final_max(USER_PARA)
-    real*8:: parax_array_new(USER_PARA), paray_array_new(USER_PARA), paray_min(USER_PARA), paray_max(USER_PARA)
+    real*8:: parax_array_new(USER_PARA), paray_array_new(USER_PARA), &
+             paray_min(USER_PARA), paray_max(USER_PARA)
     
     ! read the input parameters
     open(66, file = 'grid2d-blunt-flaredcone-withShock-V2.0.in')
@@ -97,7 +99,8 @@
     ! [Global grid number & Partition strategy]
     read(66, *) nx_tot, ny_tot, nx_skip
     read(66, *)
-    read(66, *) num_x_part, num_y_part, (nx_ratio_array(i), i = 1, num_x_part), (ny_ratio_array(j), j = 1, num_y_part)
+    read(66, *) num_x_part, num_y_part, &
+                (nx_ratio_array(i), i = 1, num_x_part), (ny_ratio_array(j), j = 1, num_y_part)
     read(66, *)
     read(66, *)
     ! [Grid Type - x - streamwise direction]
@@ -117,7 +120,8 @@
     !read(66, *)
     !read(66, *) (Mesh_Y_denseshock_TYPE(j), j = 1, num_y_part), (parays_array(i), j = 1, num_y_part)
     ! (num = num_x_part * num_y_part)
-    read(66, *) (Mesh_Y_firstlayer_TYPE(j), j = 1, num_y_part), ((paray_array_comb(i, j), i = 1, (num_x_part + 1)), j = 1, num_y_part)
+    read(66, *) (Mesh_Y_firstlayer_TYPE(j), j = 1, num_y_part), &
+                ((paray_array_comb(i, j), i = 1, (num_x_part + 1)), j = 1, num_y_part)
     read(66, *)
     read(66, *) (Mesh_Y_TYPE(j), j = 1, num_y_part), Mesh_Y_trans, dev_Y  ! (paray_array(j), j = 1, num_y_part)
     read(66, *)
@@ -242,7 +246,8 @@
     ! do xcs_tmp = find_xcs_s, find_xcs_gap, find_xcs_t
     do k = 1, N_xcs
         xcs_tmp = find_xcs_s + (k - 1) * find_xcs_gap
-        find_xcs_err_tmp = abs((c1 * c2 * c4 * c5) * (((c2 * xcs_tmp + c3) ** c4 - 1.d0) ** (c5 - 1.d0)) * ((c2 * xcs_tmp + c3) ** (c4 - 1.d0)) - tan(setac))
+        find_xcs_err_tmp = abs((c1 * c2 * c4 * c5) * (((c2 * xcs_tmp + c3) ** c4 - 1.d0) ** (c5 - 1.d0)) &
+                             * ((c2 * xcs_tmp + c3) ** (c4 - 1.d0)) - tan(setac))
         if (find_xcs_err_min > find_xcs_err_tmp) then
             find_xcs_err_min = find_xcs_err_tmp
             xcs = xcs_tmp
@@ -277,23 +282,6 @@
             thetac(i) = thetac_tmp
             ! yc(1) = 0.d0
             
-            !if (xc(i) .le. xcs) then
-            !    thetac(i) = atan( (c1 * c2 * c4 * c5) * (((c2 * xc(i) + c3) ** c4 - 1.d0) ** (c5 - 1.d0)) * ((c2 * xc(i) + c3) ** (c4 - 1.d0)) )
-            !else
-            !    thetac(i) = setac
-            !endif
-            
-            !! (xb, yb) - parabolic-line farfield
-            !xb(i) = (1.d0 - sqrt(1.d0 - 4.d0 * b2 * d2 * tan(alfa) ** 2)) / (2.d0 * b2 * tan(alfa) ** 2)
-            !yb(i) = - xb(i) * tan(alfa)
-            !! equal to...
-            !! yb(i) = (- 1.d0 + sqrt(1.d0 - 4.d0 * b2 * d2 * tan(alfa) ** 2)) / (2.d0 * b2 * tan(alfa))
-            !! xb(i) = b2 * yb(i) * yb(i) + d2
-            !if (xb(i) .gt. xbs) then
-            !    ! (xb, yb) is located on the linear line
-	           ! xb(i) = - (ybs - tan(setab) * xbs) / (tan(alfa) + tan(setab))
-	           ! yb(i) = - tan(alfa) * xb(i)
-            !endif
             
             ! (xb, yb) - parabolic-line farfield
             call getxb_farfield_shock_normal(xc(i), yc(i), thetac(i), xb_tmp, yb_tmp)
@@ -317,18 +305,6 @@
             xc(i) = xc_tmp
             yc(i) = yc_tmp
             thetac(i) = thetac_tmp
-
-         !   ! (xb, yb) - parabolic-line farfield
-	        !at = b2
-	        !bt = tan(theta1)
-	        !ct = d2 - xa(i) - ya(i) * tan(theta1)
-	        !yb(i) = (- bt + sqrt(bt * bt - 4. * at * ct)) / (2. * at)
-	        !xb(i) = b2 * yb(i) * yb(i) + d2
-         !   if (xb(i) .gt. xs) then
-         !       xb(i) = (ya(i) - ybs + tan(setab) * xbs - tan(PI / 2. + theta1) * xa(i)) /  &
-         !               (tan(setab) - tan(PI / 2. + theta1))
-	        !    yb(i) = ybs + tan(setab) * (xb(i) - xbs)
-         !   endif
             
             ! (xb, yb) - parabolic-line farfield
             call getxb_farfield_shock_normal(xc(i), yc(i), thetac(i), xb_tmp, yb_tmp)
@@ -455,7 +431,8 @@
 
     open(55, file = "grid1d_comp.dat")
     do i = 1 + nx_skip, nx_tot
-        write(55, "(10f15.6)") xa(i), ya(i), xb(i), yb(i), xb_new(i), yb_new(i), xc(i), yc(i), xc_new(i), yc_new(i)
+        write(55, "(10f15.6)") xa(i), ya(i), xb(i), yb(i), &
+                               xb_new(i), yb_new(i), xc(i), yc(i), xc_new(i), yc_new(i)
     enddo
     close(55)
     
@@ -480,31 +457,31 @@
     write(99, *) "Writing the coor. xa ..."
     open(77, file = "xa.dat")
     do i = 1 + nx_skip, nx_tot
-        write(77, '(4f16.8)') (i - nx_skip) * 1.d0, ID_X(i), xa(i), ya(i)
+        write(77, *) i - nx_skip, ID_X(i), xa(i), ya(i)
     enddo
     write(*, *) "Writing the coor. xb ..."
     write(99, *) "Writing the coor. xb ..."
     open(77, file = "xb.dat")
     do i = 1 + nx_skip, nx_tot
-        write(77, '(4f16.8)') (i - nx_skip) * 1.d0, ID_X(i), xb(i), yb(i)
+        write(77, *) i - nx_skip, ID_X(i), xb(i), yb(i)
     enddo
     write(*, *) "Writing the coor. xc ..."
     write(99, *) "Writing the coor. xc ..."
     open(77, file = "xc.dat")
     do i = 1 + nx_skip, nx_tot
-        write(77, '(4f16.8)') (i - nx_skip) * 1.d0, ID_X(i), xc(i), yc(i) !, thetac(i)
+        write(77, *) i - nx_skip, ID_X(i), xc(i), yc(i) !, thetac(i)
     enddo
     write(*, *) "Writing the angle theta_xa ..."
     write(99, *) "Writing the angle theta_xa ..."
     open(77, file = "theta_xa.dat")
     do i = 1 + nx_skip, nx_tot
-        write(77, '(3f16.8)') (i - nx_skip) * 1.d0, ID_X(i), thetaa(i)
+        write(77, *) i - nx_skip, ID_X(i), thetaa(i)
     enddo
     write(*, *) "Writing the angle theta_xc ..."
     write(99, *) "Writing the angle theta_xc ..."
     open(77, file = "theta_xc.dat")
     do i = 1 + nx_skip, nx_tot
-        write(77, '(3f16.8)') (i - nx_skip) * 1.d0, ID_X(i), thetac(i)
+        write(77, *) i - nx_skip, ID_X(i), thetac(i)
     enddo
     write(*, *) "Finish writing!"
     write(*, *)
@@ -515,7 +492,8 @@
     ! handle the shock wave curve
     ! ensure the grid lines are normal to the previous cuvre (wall surface)
     ! the shock wave expression
-    ! the formula with the real coor.: y_real = (a * ((((((x_real / rn) + xt) / xm)) ** b - 1.d0) ** (1.d0 / c)) * ym - yt) * rn
+    ! the formula with the real coor.: 
+    ! y_real = (a * ((((((x_real / rn) + xt) / xm)) ** b - 1.d0) ** (1.d0 / c)) * ym - yt) * rn
     
     ! cal. the first grid height along the wall surface
     ! cal. the distribution of the control parameter
@@ -734,7 +712,7 @@
         do i = 1, nx_tot
             xx_new(i, j) = xx(i, ny_tot - j + 1)
             yy_new(i, j) = yy(i, ny_tot - j + 1)
-            write(33, '(7f15.6)') xx_new(i, j), yy_new(i, j)
+            write(33, '(2f15.6)') xx_new(i, j), yy_new(i, j)
         enddo
     enddo
     !close(33)
@@ -742,7 +720,7 @@
     write(33, *) nx_tot - nx_skip, ny_tot
     do j = 1, ny_tot
         do i = 1 + nx_skip, nx_tot
-            write(33, '(7f15.6)') xx(i, j), yy(i, j)
+            write(33, '(2f15.6)') xx(i, j), yy(i, j)
         enddo
     enddo
     close(33)
@@ -846,7 +824,8 @@
             do while (flag_find_sol == 0)
 
                 pcs = c1 * (((c2 * xc + c3) ** c4 - 1.d0) ** c5) + c6
-                pcsx = (c1 * c2 * c4 * c5) * (((c2 * xc + c3) ** c4 - 1.d0) ** (c5 - 1.d0)) * ((c2 * xc + c3) ** (c4 - 1.d0))
+                pcsx = (c1 * c2 * c4 * c5) * (((c2 * xc + c3) ** c4 - 1.d0) ** (c5 - 1.d0)) &
+                    * ((c2 * xc + c3) ** (c4 - 1.d0))
         
                 fcs = pcs - (tan(thetaa + (PI / 2.d0)) * xc) + ((tan(thetaa + (PI / 2.d0)) * xa) - ya)
                 fcsx = pcsx - tan(thetaa + (PI / 2.d0))
@@ -879,7 +858,8 @@
         endif
         
         if (xc .le. xcs) then
-            thetac = atan( (c1 * c2 * c4 * c5) * (((c2 * xc + c3) ** c4 - 1.d0) ** (c5 - 1.d0)) * ((c2 * xc + c3) ** (c4 - 1.d0)) )
+            thetac = atan( (c1 * c2 * c4 * c5) * (((c2 * xc + c3) ** c4 - 1.d0) ** (c5 - 1.d0)) &
+                        * ((c2 * xc + c3) ** (c4 - 1.d0)) )
         else
             thetac = setac
         endif
@@ -898,28 +878,6 @@
         eps = 1.d-6
     
         if (xc .le. 0.) then
-            
-         !   ! search (xb, yb) using the slope relation
-         !   ! ybs = 1.d0 / (2.d0 * b2 * tan(setab))
-	        !! xbs = b2 * ybs * ybs + d2
-         !   find_xb_gap = 1.d-5
-         !   find_xb_s = d2
-         !   find_xb_t = 0.
-         !   find_xb_err_min = MAX_INF
-         !   N_xb = ((find_xb_t - find_xb_s) / (find_xb_gap * 1.d0)) + 1
-         !
-         !   ! do xcs_tmp = find_xcs_s, find_xcs_gap, find_xcs_t
-         !   do k = 1, N_xb
-         !       xb_tmp = find_xb_s + (k - 1) * find_xb_gap
-         !       yb_tmp = sqrt((xb_tmp - d2) / (b2 * 1.d0))
-         !       find_xb_err_tmp = abs((yb_tmp - yc) - (tan(thetac + (PI / 2.d0)) * (xb_tmp - xc)))
-         !       if (find_xb_err_min > find_xb_err_tmp) then
-         !           find_xb_err_min = find_xb_err_tmp
-         !           xb_ans = xb_tmp
-         !           yb_ans = yb_tmp
-         !       endif
-         !   enddo
-         !   ! yb = sqrt((xb - d2) / (b2 * 1.d0))
             
             ! search (xb, yb) using the slope relation
             ! ybs = 1.d0 / (2.d0 * b2 * tan(setab))
@@ -981,16 +939,6 @@
                           Mesh_X_dense, eta_X, As_X, SLX_part, SLX_total, IFLAG_X, IFLAG_CNT, &
                           sx_wall_tot, id_x, delta_first_array, delta_final_array, parax_array_new)
     implicit doubleprecision (a - h, o - z)
-    ! implicit none
-    !real*8, parameter:: PI = 3.1415926535897932
-    !real*8, parameter:: MAX_INF = 99999.d0
-    !integer, parameter:: USER_PARA = 100, USER_LEN = 2000
-    !! define the allocable arrays
-    !integer nx, num_x_part, nx_buff, Mesh_X_trans
-    !integer Mesh_X_TYPE(USER_PARA), Mesh_X_dense(USER_PARA)
-    !! real*8:: alfax_buff, dev_X, SLX_total, alfax_get, alfat_get, betax_get, betat_get
-    !real*8:: nx_ratio_array(USER_PARA), parax_array(USER_PARA)
-    !real*8:: eta_X(USER_PARA), As_X(USER_PARA), SLX_part(USER_LEN)
     
     ! real*8, parameter:: PI = 3.1415926535897932
     real*8, parameter:: MAX_INF = 99999.d0
@@ -1121,7 +1069,8 @@
 
                         ! the first grid that meets the requirement is equal to the last grid in the previous section
                         nx_pre = (id_x(k) - id_x(k - 1)) + 1
-                        delta_target = (SLX_part(k - 1) * (sx_wall_part(nx_pre, k - 1) - sx_wall_part(nx_pre - 1, k - 1))) / SLX_part(k)
+                        delta_target = (SLX_part(k - 1) &
+                                     * (sx_wall_part(nx_pre, k - 1) - sx_wall_part(nx_pre - 1, k - 1))) / SLX_part(k)
                         delta_first = SLX_part(k) * delta_target
                         
                         call gets_exp_fixdelta(nx_tmp, delta_target, dev_X, sx_wall_tmp, alfax_get)
@@ -1228,7 +1177,8 @@
 
                         ! the first grid that meets the requirement is equal to the last grid in the previous section
                         nx_pre = (id_x(k) - id_x(k - 1)) + 1
-                        delta_target = (SLX_part(k - 1) * (sx_wall_part(nx_pre, k - 1) - sx_wall_part(nx_pre - 1, k - 1))) / SLX_part(k)
+                        delta_target = (SLX_part(k - 1) &
+                                     * (sx_wall_part(nx_pre, k - 1) - sx_wall_part(nx_pre - 1, k - 1))) / SLX_part(k)
                         delta_first = SLX_part(k) * delta_target
                         
                         call gets_lin_fixdelta(nx_tmp, delta_target, sx_wall_tmp, betax_get)
@@ -1453,7 +1403,7 @@
             if (i <= nd) then
                 sx(i) = As * ((exp(((i - 1.d0) / (nx - 1.d0)) * alfas) - dev) / (exp(alfas) - 1.d0))
             else
-                sx(i) = (1.d0 - As * ((exp((((nx - i) * 1.d0) / (nx - 1.d0)) * alfat) - dev) / (exp(alfat) - 1.d0)))
+                sx(i) = 1.d0 - As * ((exp((((nx - i) * 1.d0) / (nx - 1.d0)) * alfat) - dev) / (exp(alfat) - 1.d0))
             endif
         enddo
         
@@ -1488,7 +1438,8 @@
             !  fb = exp(b / (ny - 1.d0)) - 1.d0 - delta * (exp(b) - 1.d0)
             !  fbx = exp(b / (ny - 1.d0)) / (ny - 1.d0) - delta * exp(b)
             fb = deltax * ((1.d0 - b ** (nx - 1.d0)) / (1.d0 - b)) - 1.d0
-            fbx = (deltax * (1.d0 - ((nx - 1.d0) * (b ** (nx - 2.d0))) + ((nx - 2.d0) * (b ** (nx - 1.d0))))) / ((1.d0 - b) ** 2)
+            fbx = (deltax * (1.d0 - ((nx - 1.d0) * (b ** (nx - 2.d0))) &
+                   + ((nx - 2.d0) * (b ** (nx - 1.d0))))) / ((1.d0 - b) ** 2)
 
             bnew = b - fb / fbx
             
@@ -1560,7 +1511,6 @@
 
     end subroutine
     
-    !-------------------------------------------
     ! complex simpson integral formula
     subroutine simpson_curve(s, ya, yb, IFLAG_curve)
     implicit doubleprecision (a - h, o - z)
@@ -1630,7 +1580,8 @@
         ! parabolic: y = b * x * x + d
         if (y .lt. ycs) then
             ! y = c1 * (((c2 * x + c3) ** c4 - 1.d0) ** c5) + c6
-            xd = (((1 + ((y - c6) / c1) ** (1.d0 / c5)) ** ((1.d0 / c4) - 1)) * (((y - c6) / c1) ** ((1.d0 / c5) - 1))) / (c1 * c2 * c4 * c5 * 1.d0)
+            xd = (((1 + ((y - c6) / c1) ** (1.d0 / c5)) ** ((1.d0 / c4) - 1)) &
+                 * (((y - c6) / c1) ** ((1.d0 / c5) - 1))) / (c1 * c2 * c4 * c5 * 1.d0)
             func = sqrt(1.d0 + (xd ** 2))            ! shock wave fitting curve
         else
             func = 1.d0 / sin(setac)                 ! linear section
@@ -1668,9 +1619,9 @@
 
     end
     
-    !--------------------------------------------
-    ! 调整外边界的网格，使得连接点附近弧长间距光滑过渡
-    ! 采用三次函数来过渡
+    ! Adjust the mesh on the outer boundary 
+    ! to make the arc length spacing near the connection point smooth transition
+    ! using a cubic function to make the transition
     subroutine adjust_outter(nx, ss, ss_new, i_conjunction, nxconjunction_buffer)
     implicit doubleprecision (a - h, o - z)
     real*8 ss(nx), ss_new(nx)
@@ -1789,7 +1740,7 @@
         close(33)
 
         ! Generate initial data ...
-        ! may add the disturbance profile? new module needed!
+        ! may add the desired disturbance profile? new module needed!
         Istep = 0
         tt = 0.
         d = 1.
@@ -1820,13 +1771,15 @@
 
         do j = 1, ny
             do i = 1, nx - 3
-                fx(i, j) = a1 * (f(i + 3, j) - f(i - 3, j)) + a2 * (f(i + 2, j) - f(i - 2, j)) + a3 * (f(i + 1, j) - f(i - 1, j))
+                fx(i, j) = a1 * (f(i + 3, j) - f(i - 3, j)) &
+                         + a2 * (f(i + 2, j) - f(i - 2, j)) + a3 * (f(i + 1, j) - f(i - 1, j))
             enddo
         enddo
 
         do j = 1, ny
             fx(nx - 2, j) = b1 * (f(nx - 1, j) - f(nx - 3, j)) - b2 * (f(nx, j) - f(nx - 4, j))
-            fx(nx - 1, j) = (f(nx - 3, j) - 6.d0 * f(nx - 2, j) + 3.d0 * f(nx - 1, j) + 2.d0 * f(nx, j)) / (6.d0 * hx)
+            fx(nx - 1, j) = (f(nx - 3, j) - 6.d0 * f(nx - 2, j) &
+                          + 3.d0 * f(nx - 1, j) + 2.d0 * f(nx, j)) / (6.d0 * hx)
             fx(nx, j) = (f(nx - 2, j) - 4.d0 * f(nx - 1, j) + 3.d0 * f(nx, j)) / (2.d0 * hx)
         enddo
 
@@ -1845,7 +1798,8 @@
 
     do j = 4, ny - 3
         do i = 1, nx
-            fy(i, j) = a1 * (f(i, j + 3) - f(i, j - 3)) + a2 * (f(i, j + 2) - f(i, j - 2)) + a3 * (f(i, j + 1) - f(i, j - 1))
+            fy(i, j) = a1 * (f(i, j + 3) - f(i, j - 3)) &
+                     + a2 * (f(i, j + 2) - f(i, j - 2)) + a3 * (f(i, j + 1) - f(i, j - 1))
         enddo
     enddo
 
@@ -1856,7 +1810,8 @@
         fy(i, 3) = b1 * (f(i, 4) - f(i, 2)) - b2*(f(i,5)-f(i,1))
 
         fy(i, ny - 2) = b1 * (f(i, ny - 1) - f(i, ny - 3)) - b2 * (f(i, ny) - f(i, ny - 4))
-        fy(i, ny - 1) = (f(i, ny - 3) - 6.d0 * f(i, ny - 2) + 3.d0 * f(i, ny - 1) + 2.d0 * f(i, ny)) / (6.d0 * hy)
+        fy(i, ny - 1) = (f(i, ny - 3) - 6.d0 * f(i, ny - 2) &
+                      + 3.d0 * f(i, ny - 1) + 2.d0 * f(i, ny)) / (6.d0 * hy)
         fy(i, ny) = (f(i, ny - 2) - 4.d0 * f(i, ny - 1) + 3.d0 * f(i, ny)) / (2.d0 * hy)
 
     enddo
@@ -1866,3 +1821,5 @@
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    
+    
