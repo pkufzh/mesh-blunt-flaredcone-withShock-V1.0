@@ -50,7 +50,8 @@
     !real*8, allocatable:: xx(:,:), yy(:,:)
     common/para/ rn, theta1, R, x3c, x4c, a, b, c, xm, xt, ym, yt, b2, d2, setab, setac
     common/para/ xbs, ybs, xcs, ycs, c1, c2, c3, c4, c5, c6
-    real*8:: xa(USER_LEN), xb(USER_LEN), xc(USER_LEN), ya(USER_LEN), yb(USER_LEN), yc(USER_LEN), thetaa(USER_LEN), thetac(USER_LEN)
+    real*8:: xa(USER_LEN), xb(USER_LEN), xc(USER_LEN), ya(USER_LEN), &
+             yb(USER_LEN), yc(USER_LEN), thetaa(USER_LEN), thetac(USER_LEN)
     real*8:: ss_b(USER_LEN), ss_c(USER_LEN), ss_b_new(USER_LEN), ss_c_new(USER_LEN)
     real*8:: xb_new(USER_LEN), yb_new(USER_LEN), xc_new(USER_LEN), yc_new(USER_LEN)
     ! real*8:: rn, theta1, R, x3c, x4c
@@ -181,7 +182,9 @@
     do k = 1, num_x_part
         SLX_prop(k) = SLX_part(k) / SLX_total
     enddo
-       
+    
+    nx_tot = nx_tot + 1
+    
     ! generate the grid in streamwise direction (x direction)
     ! sx_wall is always between [0, 1]
     open(99, file = "mesh_generation_info.log")
@@ -197,7 +200,7 @@
     write(99, *)
     write(99, *) "Writing the sx [0, 1] on the model wall ......"
     open(55, file = "sx_wall.dat")
-    do k = 1, nx_tot - 1
+    do k = 1, nx_tot
         write(55, *) k, sx_wall_tot(k), sx_wall_tot(k + 1) - sx_wall_tot(k)
     enddo
     write(*, *) "Finish writing!"
@@ -741,7 +744,7 @@
     write(33, *) 'variables = x, y'
     write(33, *) 'zone i = ', nx_tot, 'j = ', ny_tot
     do j = 1, ny_tot
-        do i = 1, nx_tot
+        do i = 2, nx_tot
             xx_new(i, j) = xx(i, ny_tot - j + 1)
             yy_new(i, j) = yy(i, ny_tot - j + 1)
             write(33, '(7f15.6)') xx_new(i, j), yy_new(i, j)
@@ -751,7 +754,7 @@
     open(33, file = 'grid_xy_plot.dat')
     write(33, *) nx_tot, ny_tot
     do j = 1, ny_tot
-        do i = 1, nx_tot
+        do i = 2, nx_tot
             write(33, '(7f15.6)') xx(i, j), yy(i, j)
         enddo
     enddo
@@ -765,7 +768,7 @@
     write(*, *) "Cal. the Jacobian martix from mesh ..."
     write(99, *)
     write(99, *) "Cal. the Jacobian martix from mesh ..."
-    call get_Jacobian(nx_tot, ny_tot, yy_new, xx_new)
+    call get_Jacobian(nx_tot - 1, ny_tot, yy_new, xx_new)
     write(*, *) "Finish writing the Jacobian martix!"
     write(99, *) "Finish writing the Jacobian martix!"
     
@@ -1726,31 +1729,29 @@
 	! real*8:: xk(nx, ny), xi(nx, ny), yk(nx, ny), yi(nx, ny)
 	! real*8:: xx1(1 - LAP : nx, ny), yy1(1 - LAP : nx, ny)
     ! real*8:: d(nx, ny), u(nx, ny), v(nx, ny), T(nx, ny)
-    
     real*8:: xx(USER_LEN, USER_LEN), yy(USER_LEN, USER_LEN)  !!!!!
 	real*8:: Akx(nx, ny), Aky(nx, ny), Aix(nx, ny), Aiy(nx, ny), Ajac(nx, ny)
 	real*8:: xk(nx, ny), xi(nx, ny), yk(nx, ny), yi(nx, ny)
 	real*8:: xx1(1 - LAP : nx, ny), yy1(1 - LAP : nx, ny), xx2(nx, ny), yy2(nx, ny)
     real*8:: d(nx, ny), u(nx, ny), v(nx, ny), T(nx, ny)
-
     
-        
+
         hx = 1.d0 / (nx - 1.d0)
         hy = 1.d0 / (ny - 1.d0)
 
         do j = 1, ny
             do i = 1, nx
-                xx1(i, j) = xx(i, j)
-                yy1(i, j) = yy(i, j)
-                xx2(i, j) = xx(i, j)
-                yy2(i, j) = yy(i, j)
+                xx1(i, j) = xx(i + 1, j)
+                yy1(i, j) = yy(i + 1, j)
+                xx2(i, j) = xx(i + 1, j)
+                yy2(i, j) = yy(i + 1, j)
             enddo
         enddo
         do j = 1, ny
             do i = 1, LAP
                 i1 = 1 - i
-                xx1(i1, j) = - xx(i, j)
-                yy1(i1, j) = yy(i, j)
+                xx1(i1, j) = - xx(i + 1, j)
+                yy1(i1, j) = yy(i + 1, j)
             enddo
         enddo
 
