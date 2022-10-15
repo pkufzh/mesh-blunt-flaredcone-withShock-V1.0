@@ -5,7 +5,7 @@
  #  Length unit: mm; angle unit: deg
  #  [Model geometry]
  #  [Global parameters]
- #  rn      theta1      R       x3c      x4c       IFLAG_Flared     IFLAG_Grid_Fitting
+ #  rn      theta1      R       x3c      x4c       IFLAG_flared     IFLAG_Grid_Fitting
     3.0     7.          931.    100.     260.      1
  #  [Boundary Definition - the shock wave fitting curve]
     a       b       c       xm      xt      ym      yt		setac
@@ -26,7 +26,7 @@
     0    0    0         0.5    0.5    0.5       2.0    1.5    2.0
  #  [Buffer section] id. = num_x_part + 1
  #  nx_buff     alfax_buff      nxconjuction
-    20          1.005            10
+    30          1.005            10
  #  [Grid Type - y - wall-normal direction] interpolation involved
  #  Mesh_Y_firstlayer_TYPE - Equal (1), Linear Intep1 (2)      paray_array_comb (num = (num_x_part + 1) * num_y_part)
     2    2                                                     3.5    3.5    3.5    3.5    2.0    2.0    2.0    2.0

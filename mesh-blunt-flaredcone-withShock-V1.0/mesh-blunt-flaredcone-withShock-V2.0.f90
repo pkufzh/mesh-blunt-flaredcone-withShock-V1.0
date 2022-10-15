@@ -51,7 +51,7 @@
              eta_Y(USER_PARA), As_Y(USER_PARA)
     ! real*8:: parayw_array(USER_PARA), parays_array(USER_PARA)
     integer nx_tot, ny_tot, nx_skip, num_x_part, num_y_part, &
-            Mesh_X_trans, Mesh_Y_trans, nx_buff, nxconjuction, IFLAG_Flared
+            Mesh_X_trans, Mesh_Y_trans, nx_buff, nxconjuction, IFLAG_flared
     integer Mesh_X_TYPE(USER_PARA), Mesh_X_dense(USER_PARA), Mesh_Y_TYPE(USER_PARA), Mesh_Y_dense(USER_PARA)
     integer Mesh_Y_firstlayer_TYPE(USER_PARA)
     ! integer Mesh_Y_normgrowth_TYPE(USER_PARA), Mesh_Y_firstlayer_TYPE(USER_PARA), Mesh_Y_denseshock_TYPE(USER_PARA)
@@ -85,7 +85,7 @@
     read(66, *)
     ! [Model geometry]
     ! [Global parameters]
-    read(66, *) rn, theta1, R, x3c, x4c, IFLAG_Flared
+    read(66, *) rn, theta1, R, x3c, x4c, IFLAG_flared
     read(66, *)
     read(66, *)
     ! [Boundary Definition - the shock wave fitting curve]
@@ -158,12 +158,18 @@
     ! Section 2: the straight cone frustum (x2, x3]
     SLX_part(2) = (x3 + rn * sin(theta1)) / cos(theta1)
     ! Section 3: the flared cone section (x3, x4]
-    h1 = x3c * tan(theta1)
-    Ax4c = (x4c - x3c) * (2 * R * sin(theta1) + (x4c - x3c))
-    h2 = h1 + R * cos(theta1) - sqrt(R * R * cos(theta1) * cos(theta1) - Ax4c)
-    ! the change of theta along the flared arc
-    theta_arc = atan((R * sin(theta1) + (x4c - x3c)) / (R * cos(theta1) - (h2 - h1))) - theta1
-    SLX_part(3) = R * theta_arc
+    if (IFLAG_flared == 1) then
+        ! flared section
+        h1 = x3c * tan(theta1)
+        Ax4c = (x4c - x3c) * (2 * R * sin(theta1) + (x4c - x3c))
+        h2 = h1 + R * cos(theta1) - sqrt(R * R * cos(theta1) * cos(theta1) - Ax4c)
+        ! the change of theta along the flared arc
+        theta_arc = atan((R * sin(theta1) + (x4c - x3c)) / (R * cos(theta1) - (h2 - h1))) - theta1
+        SLX_part(3) = R * theta_arc
+    else if (IFLAG_flared == 0) then
+        ! still remain straight
+        SLX_part(3) = (x4 - x3) / cos(theta1)
+    endif
     
     ! SLX_total = (PI / 2. - theta1) * rn + (x3 + rn * sin(theta1)) / cos(theta1)
     ! sum up to get the total length of the wall (from the blunt head to the flared rear)
@@ -320,9 +326,15 @@
             
             ! (xa, ya) - wall surface
             sa = s - (SLX_part(1) + SLX_part(2))
-            thetaa(i) = (sa * 1.d0) / (R * 1.d0) + theta1
-            xa(i) = R * (sin(thetaa(i)) - sin(theta1)) - rn * sin(theta1) + SLX_part(2) * cos(theta1)
-            ya(i) = R * (cos(theta1) - cos(thetaa(i))) + rn * cos(theta1) + SLX_part(2) * sin(theta1)
+            if (IFLAG_flared == 1) then
+                thetaa(i) = (sa * 1.d0) / (R * 1.d0) + theta1
+                xa(i) = R * (sin(thetaa(i)) - sin(theta1)) - rn * sin(theta1) + SLX_part(2) * cos(theta1)
+                ya(i) = R * (cos(theta1) - cos(thetaa(i))) + rn * cos(theta1) + SLX_part(2) * sin(theta1)
+            else if (IFLAG_flared == 0) then
+                thetaa(i) = theta1
+                xa(i) = - rn * sin(theta1) + (SLX_part(2) + sa) * cos(theta1)
+	            ya(i) = rn * cos(theta1) + (SLX_part(2) + sa) * sin(theta1)
+            endif
 
             ! (xc, yc) - shock wave
             ! common module
@@ -372,7 +384,7 @@
     ! Test module
     ! Adjust mesh points near the conjunction points to smooth the connection
 
-    ! i_conjunction - find the point nearest to the conjection point
+    ! i_conjunction - find the point nearest to the circular - straight cone conjection point
     do i = 1, nx_tot
         s = sx_wall_tot(i) * SLX_total
 	    if (s .gt. SLX_part(1)) then
