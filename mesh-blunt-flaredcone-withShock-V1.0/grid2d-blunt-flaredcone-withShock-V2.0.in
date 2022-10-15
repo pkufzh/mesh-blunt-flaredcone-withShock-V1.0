@@ -26,7 +26,7 @@
     0    0    0         0.5    0.5    0.5       2.0    1.5    2.0
  #  [Buffer section] id. = num_x_part + 1
  #  nx_buff     alfax_buff      nxconjuction
-    20          0.65           10
+    20          1.005            10
  #  [Grid Type - y - wall-normal direction] interpolation involved
  #  Mesh_Y_firstlayer_TYPE - Equal (1), Linear Intep1 (2)      paray_array_comb (num = (num_x_part + 1) * num_y_part)
     2    2                                                     3.5    3.5    3.5    3.5    2.0    2.0    2.0    2.0

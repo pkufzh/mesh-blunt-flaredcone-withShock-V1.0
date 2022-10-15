@@ -335,6 +335,7 @@
             yb(i) = yb_tmp
             
         ! Section 4: buffer section (straight line)
+        !!! check!
         else if (s .gt. SLX_total) then
             
             ID_X(i) = 4
@@ -342,8 +343,8 @@
             ! (xa, ya) - wall surface
             sa = s - SLX_total
             thetaa(i) = thetaa(i - 1)
-            xa(i) = xa(i - 1) + sa * cos(thetaa(i))
-            ya(i) = ya(i - 1) + sa * sin(thetaa(i))
+            xa(i) = xa(nx_tot - nx_buff) + sa * cos(thetaa(i))
+            ya(i) = ya(nx_tot - nx_buff) + sa * sin(thetaa(i))
             
             ! (xc, yc) - shock wave
             ! common module

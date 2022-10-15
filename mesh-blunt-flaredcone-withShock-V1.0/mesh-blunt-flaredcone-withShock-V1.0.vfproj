@@ -47,7 +47,7 @@
 	<Files>
 		<Filter Name="Header Files" Filter="fi;fd;h;inc"/>
 		<Filter Name="Resource Files" Filter="rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe">
-		<File RelativePath=".\Source1.f90"/></Filter>
+		<File RelativePath=".\mesh-blunt-flaredcone-withShock-V2.0.f90"/></Filter>
 		<Filter Name="Source Files" Filter="f90;for;f;fpp;ftn;def;odl;idl">
 		<File RelativePath=".\grid2d-blunt-flaredcone-withShock-V2.0.in"/>
 		<File RelativePath=".\grid2d-withleading.in"/>
