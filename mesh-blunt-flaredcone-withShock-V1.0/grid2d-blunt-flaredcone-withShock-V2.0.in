@@ -5,8 +5,8 @@
  #  Length unit: mm; angle unit: deg
  #  [Model geometry]
  #  [Global parameters]
- #  rn      theta1      R       x3c      x4c       IFLAG_Grid_Fitting
-    3.0     7.          931.    100.     260.      
+ #  rn      theta1      R       x3c      x4c       IFLAG_Flared     IFLAG_Grid_Fitting
+    3.0     7.          931.    100.     260.      1
  #  [Boundary Definition - the shock wave fitting curve]
     a       b       c       xm      xt      ym      yt		setac
     0.536411052352383   2.268559528843074   2.164991018049637   26.856187290969899  1.155065139500000   8.850157623426766   -0.001623000000000	15.0

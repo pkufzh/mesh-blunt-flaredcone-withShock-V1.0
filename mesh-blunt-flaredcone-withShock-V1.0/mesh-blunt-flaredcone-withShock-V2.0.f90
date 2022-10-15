@@ -47,9 +47,11 @@
     real*8:: dev_X, dev_Y, alfax_buff, delta_yc_trans
     real*8:: nx_ratio_array(USER_PARA), ny_ratio_array(USER_PARA), &
              parax_array(USER_PARA), eta_X(USER_PARA), As_X(USER_PARA), &
-             paray_array(USER_PARA), paray_array_comb(USER_PARA, USER_PARA), eta_Y(USER_PARA), As_Y(USER_PARA)
+             paray_array(USER_PARA), paray_array_comb(USER_PARA, USER_PARA), &
+             eta_Y(USER_PARA), As_Y(USER_PARA)
     ! real*8:: parayw_array(USER_PARA), parays_array(USER_PARA)
-    integer nx_tot, ny_tot, nx_skip, num_x_part, num_y_part, Mesh_X_trans, Mesh_Y_trans, nx_buff, nxconjuction
+    integer nx_tot, ny_tot, nx_skip, num_x_part, num_y_part, &
+            Mesh_X_trans, Mesh_Y_trans, nx_buff, nxconjuction, IFLAG_Flared
     integer Mesh_X_TYPE(USER_PARA), Mesh_X_dense(USER_PARA), Mesh_Y_TYPE(USER_PARA), Mesh_Y_dense(USER_PARA)
     integer Mesh_Y_firstlayer_TYPE(USER_PARA)
     ! integer Mesh_Y_normgrowth_TYPE(USER_PARA), Mesh_Y_firstlayer_TYPE(USER_PARA), Mesh_Y_denseshock_TYPE(USER_PARA)
@@ -83,7 +85,7 @@
     read(66, *)
     ! [Model geometry]
     ! [Global parameters]
-    read(66, *) rn, theta1, R, x3c, x4c
+    read(66, *) rn, theta1, R, x3c, x4c, IFLAG_Flared
     read(66, *)
     read(66, *)
     ! [Boundary Definition - the shock wave fitting curve]
@@ -1808,7 +1810,7 @@
 
         fy(i, 1) = (- 3.d0 * f(i, 1) + 4.d0 * f(i, 2) - f(i, 3)) / (2.d0 * hy)            
         fy(i, 2) = (- 2.d0 * f(i, 1) - 3.d0 * f(i, 2) + 6.d0 * f(i, 3) - f(i, 4)) / (6.d0 * hy)
-        fy(i, 3) = b1 * (f(i, 4) - f(i, 2)) - b2*(f(i,5)-f(i,1))
+        fy(i, 3) = b1 * (f(i, 4) - f(i, 2)) - b2*(f(i, 5) - f(i, 1))
 
         fy(i, ny - 2) = b1 * (f(i, ny - 1) - f(i, ny - 3)) - b2 * (f(i, ny) - f(i, ny - 4))
         fy(i, ny - 1) = (f(i, ny - 3) - 6.d0 * f(i, ny - 2) &
