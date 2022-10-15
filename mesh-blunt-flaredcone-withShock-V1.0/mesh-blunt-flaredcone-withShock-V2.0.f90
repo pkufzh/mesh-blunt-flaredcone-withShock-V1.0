@@ -51,7 +51,7 @@
              eta_Y(USER_PARA), As_Y(USER_PARA)
     ! real*8:: parayw_array(USER_PARA), parays_array(USER_PARA)
     integer nx_tot, ny_tot, nx_skip, num_x_part, num_y_part, &
-            Mesh_X_trans, Mesh_Y_trans, nx_buff, nxconjuction, IFLAG_flared
+            Mesh_X_trans, Mesh_Y_trans, nx_buff, nxconjuction, nyconjuction, IFLAG_flared
     integer Mesh_X_TYPE(USER_PARA), Mesh_X_dense(USER_PARA), Mesh_Y_TYPE(USER_PARA), Mesh_Y_dense(USER_PARA)
     integer Mesh_Y_firstlayer_TYPE(USER_PARA)
     ! integer Mesh_Y_normgrowth_TYPE(USER_PARA), Mesh_Y_firstlayer_TYPE(USER_PARA), Mesh_Y_denseshock_TYPE(USER_PARA)
@@ -112,7 +112,7 @@
     read(66, *)
     read(66, *)
     ! [Buffer section]
-    read(66, *) nx_buff, alfax_buff, nxconjuction
+    read(66, *) nx_buff, alfax_buff, nxconjuction, nyconjuction
     read(66, *)
     read(66, *)
     ! [Grid Type - y - wall-normal direction] interpolation involved
@@ -187,7 +187,7 @@
     ! generate the grid in streamwise direction (x direction)
     ! sx_wall is always between [0, 1]
     open(99, file = "mesh_generation_info.log")
-    call getsx_wall(nx_tot, num_x_part, nx_ratio_array, nx_buff, alfax_buff, &
+    call getsx_wall(nx_tot, num_x_part, nx_ratio_array, nx_buff, alfax_buff, nxconjuction, nyconjuction, &
                     Mesh_X_TYPE, Mesh_X_trans, parax_array, dev_X, &
                     Mesh_X_dense, eta_X, As_X, SLX_part, SLX_total, 1, 1, &
                     sx_wall_tot, ID_x_flag, delta_first_array, delta_final_array, parax_array_new)
@@ -605,7 +605,7 @@
         ! Mesh_Y_firstlayer_TYPE(j)
         
         ! vary paray_array
-        call getsx_wall(ny_tot, num_y_part, ny_ratio_array, 0, 0.d0, &
+        call getsx_wall(ny_tot, num_y_part, ny_ratio_array, 0, 0.d0, nxconjuction, nyconjuction, &
                         Mesh_Y_TYPE, Mesh_Y_trans, paray_array, dev_Y, &
                         Mesh_Y_dense, eta_Y, As_Y, SLY_part_tmp, SLY_total(i), 2, i, &
                         sy_tot_tmp, id_y_flag_tmp, delta_first_array, delta_final_array, paray_array_new)
@@ -949,7 +949,7 @@
 
 
     ! cal. s distance along the wall from the stagnation point of each grid
-    subroutine getsx_wall(nx, num_x_part, nx_ratio_array, nx_buff, alfax_buff, &
+    subroutine getsx_wall(nx, num_x_part, nx_ratio_array, nx_buff, alfax_buff, nxconjuction, nyconjuction, &
                           Mesh_X_TYPE, Mesh_X_trans, parax_array, dev_X, &
                           Mesh_X_dense, eta_X, As_X, SLX_part, SLX_total, IFLAG_X, IFLAG_CNT, &
                           sx_wall_tot, id_x, delta_first_array, delta_final_array, parax_array_new)
@@ -1114,7 +1114,13 @@
                         write(99, *) "Detailed Y mode: densed grids on both sides"
                     endif
                     
-                    call gets_exp_densegrid(nx_tmp, parax_array(k), dev_X, eta_X(k), As_X(k), sx_wall_tmp, alfat_get)
+                    if (IFLAG_X == 1) then
+                        call gets_exp_densegrid(nx_tmp, nxconjuction, parax_array(k), &
+                                                dev_X, eta_X(k), As_X(k), sx_wall_tmp, alfat_get)
+                    else if (IFLAG_X == 2) then
+                        call gets_exp_densegrid(nx_tmp, nyconjuction, parax_array(k), &
+                                                dev_X, eta_X(k), As_X(k), sx_wall_tmp, alfat_get)
+                    endif
                     parax_array_new(k) = alfat_get
                     delta_first = SLX_part(k) * (sx_wall_tmp(2) - sx_wall_tmp(1))
                     delta_final = SLX_part(k) * (sx_wall_tmp(nx_tmp) - sx_wall_tmp(nx_tmp - 1))
@@ -1221,7 +1227,13 @@
                         write(99, *) "Detailed Y mode: densed grids on both sides"
                     endif
 
-                    call gets_lin_densegrid(nx_tmp, parax_array(k), eta_X(k), As_X(k), sx_wall_tmp, betat_get)
+                    if (IFLAG_X == 1) then
+                        call gets_lin_densegrid(nx_tmp, nxconjuction, parax_array(k), &
+                                                eta_X(k), As_X(k), sx_wall_tmp, betat_get)
+                    else if (IFLAG_X == 2) then
+                        call gets_lin_densegrid(nx_tmp, nyconjuction, parax_array(k), &
+                                                eta_X(k), As_X(k), sx_wall_tmp, betat_get)
+                    endif
                     parax_array_new(k) = betat_get
                     delta_first = SLX_part(k) * (sx_wall_tmp(2) - sx_wall_tmp(1))
                     delta_final = SLX_part(k) * (sx_wall_tmp(nx_tmp) - sx_wall_tmp(nx_tmp - 1))
@@ -1370,13 +1382,15 @@
 
     end subroutine
 
-    subroutine gets_exp_densegrid(nx, alfas, dev, eta, As, sx, alfat_get)
+    subroutine gets_exp_densegrid(nx, nxconjuction, alfas, dev, eta, As, sx, alfat_get)
     implicit doubleprecision (a - h, o - z)
     real*8, parameter:: PI = 3.1415926535897932
     real*8, parameter:: MAX_INF = 99999.d0
     integer, parameter:: USER_PARA = 100, USER_LEN = 2000
     
-    dimension sx(nx), sx_err(nx)
+    ! 15 Oct 2022: Attempt to smooth the grid variation
+    
+    dimension sx(nx), sx_err(nx), sx_new(nx)
     ! real*8:: sx_err(USER_LEN)
 
         sx_err_min = MAX_INF
@@ -1414,13 +1428,37 @@
 
         enddo
 
+        sx_sum_s = 0.d0
+        sx_sum_t = 0.d0
         do i = 1, nx
             if (i <= nd) then
                 sx(i) = As * ((exp(((i - 1.d0) / (nx - 1.d0)) * alfas) - dev) / (exp(alfas) - 1.d0))
+                sx_sum_s = sx_sum_s + sx(i)
+            ! from i = nd + 1
+            ! 4 points: i = nd - 1, nd, nd + 1, nd + 2
+            ! 3 sections
             else
                 sx(i) = 1.d0 - As * ((exp((((nx - i) * 1.d0) / (nx - 1.d0)) * alfat) - dev) / (exp(alfat) - 1.d0))
+                sx_sum_t = sx_sum_t + (1.d0 - sx(i))
             endif
         enddo
+        
+        !delta_conj_tot_ori = sx(nd + 2) - sx(nd - 1)
+        !n_conj = 3
+        !delta_conj_tar = delta_conj_tot_ori / (n_conj * 1.d0)
+        !delta_conj_fac_s = (delta_conj_tar + sx(nd - 1)) / sx(nd)
+        !delta_conj_fac_t = sx(nd + 2) / (delta_conj_tar + sx(nd + 1))
+        !
+        !do i = 1, nx
+        !    if (i <= nd) then
+        !        sx(i) = sx(i) * delta_conj_fac_s
+        !    else if (i >= (nd + 2)) then
+        !        sx(i) = sx(i) / (delta_conj_fac_t * 1.d0)
+        !    endif
+        !enddo
+        
+        call adjust_outter(nx, sx, sx_new, nd, nxconjuction)
+        sx = sx_new
         
         alfat_get = alfat
 
@@ -1476,9 +1514,9 @@
 
     end subroutine
 
-    subroutine gets_lin_densegrid(nx, betas, eta, As, sx, betat_get)
+    subroutine gets_lin_densegrid(nx, nxconjuction, betas, eta, As, sx, betat_get)
     implicit doubleprecision (a - h, o - z)
-    dimension sx(nx), sx_err(nx)
+    dimension sx(nx), sx_err(nx), sx_new(nx)
 
         sx_err_min = MAX_INF
         do i = 1, nx
@@ -1521,6 +1559,9 @@
                 sx(i) = (1.d0 - As * ((1.d0 - betat ** (nx - i)) / (1.d0 - betat)))
             endif
         enddo
+        
+        call adjust_outter(nx, sx, sx_new, nd, nxconjuction)
+        sx = sx_new
         
         betat_get = betat
 
