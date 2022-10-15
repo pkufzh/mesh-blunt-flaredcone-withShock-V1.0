@@ -164,7 +164,7 @@
     ! the change of theta along the flared arc
     theta_arc = atan((R * sin(theta1) + (x4c - x3c)) / (R * cos(theta1) - (h2 - h1))) - theta1
     SLX_part(3) = R * theta_arc
-
+    
     ! SLX_total = (PI / 2. - theta1) * rn + (x3 + rn * sin(theta1)) / cos(theta1)
     ! sum up to get the total length of the wall (from the blunt head to the flared rear)
     ! besides, the length proportions of each section "SLX_prop" are also calculated.
