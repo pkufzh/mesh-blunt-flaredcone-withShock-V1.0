@@ -5,35 +5,35 @@
  #  Length unit: mm; angle unit: deg
  #  [Model geometry]
  #  [Global parameters]
- #  rn      theta1      R       x3c      x4c       IFLAG_flared     IFLAG_Grid_Fitting
-    3.0     7.          931.    100.     260.      1
+ #  rn      theta1      R       x3c      x4c       IFLAG_flared     IFLAG_shock_fitting
+    3.81    7.          931.    200.     520.      0                1
  #  [Boundary Definition - the shock wave fitting curve]
     a       b       c       xm      xt      ym      yt		setac
-    0.536411052352383   2.268559528843074   2.164991018049637   26.856187290969899  1.155065139500000   8.850157623426766   -0.001623000000000	15.0
+    0.491292122018611    2.579686013565737    2.261583703923487   38.729096989966557  1.147171916010499   10.107755391540316   -0.001469706036745	 9.50
  #  [Boundary Definition - farfield curve for computation]
  #  b2       d2       setab
-    0.10     -3.801   18.11
+    0.08     -4.8     12.0
  #  [Grid parameters]
  #  [Global grid number & Partition strategy]
- #  nx_tot      ny_tot      nx_skip
-    1600        400         1
+ #  nx_tot      ny_tot      nx_skip      IFLAG_conj_smooth      nxconjuction        nyconjuction
+    4000        300         1            1                      10                  10
  #  num_x_part     num_y_part       nx_ratio_array          ny_ratio_array
-    3              2                0.20  0.46  0.34        0.80  0.20
+    3              2                0.10  0.45  0.45        0.85  0.15
  #  [Grid Type - x - streamwise direction]
  #  Mesh_X_TYPE - Equal spaced (1), Exp. (2) or Linear (3)         Mesh_X_trans        parax_array             dev_X
-    2    2    2                                                    1                   2.5    2.0    1.5       1.0
+    2    2    2                                                    1                   3.0    2.0    1.5       1.0
  #  Mesh_X_dense        eta_X                   As_X
     0    0    0         0.5    0.5    0.5       2.0    1.5    2.0
  #  [Buffer section] id. = num_x_part + 1
- #  nx_buff     alfax_buff      nxconjuction        nyconjuction
-    30          1.005           10                  10
+ #  nx_buff     alfax_buff
+    30          1.005
  #  [Grid Type - y - wall-normal direction] interpolation involved
  #  Mesh_Y_firstlayer_TYPE - Equal (1), Linear Intep1 (2)      paray_array_comb (num = (num_x_part + 1) * num_y_part)
-    2    2                                                     3.5    3.5    3.5    3.5    2.0    2.0    2.0    2.0
+    2    2                                                     5.5    5.5    5.5    5.5    2.0    2.0    2.0    2.0
  #  Mesh_Y_TYPE - Equal spaced (1), Exp. (2) or Linear (3)     Mesh_Y_trans        dev_Y
     2    2                                                     1                   1.0
  #  Mesh_Y_dense        eta_Y                   As_Y
-    1    0              0.30    0.5              1.8    1.5            
+    1    0              0.2    0.5              3.0    1.5            
 
 ***********************************************************************************
 ***-------------------------- Parameter Explanation ----------------------------***
