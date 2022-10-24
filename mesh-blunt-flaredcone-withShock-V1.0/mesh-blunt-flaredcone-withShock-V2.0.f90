@@ -6,7 +6,7 @@
 !  Exceptional Mode: increase the mesh density on both sides of the input local shock curve
 
 ! New feature of V2.0:
-! destance between wall to the first mesh is constant and are given in control file
+! distance between wall to the first mesh is constant and are given in control file
 ! Continues mesh step between conjuction point (between cone and body).
 ! New feature of V3.0:
 ! Step of the first mesh to the wall can be adjust by user. (linear function for hy1 (i=1) to hy2 (i=Ny) )
@@ -38,13 +38,15 @@
     common/para/ rn, theta1, R, x3c, x4c, a, b, c, xm, xt, ym, yt, b2, d2, setab, setac
     common/para/ xbs, ybs, xcs, ycs, c1, c2, c3, c4, c5, c6
     real*8:: xa(USER_LEN), xb(USER_LEN), xc(USER_LEN), ya(USER_LEN), &
-             yb(USER_LEN), yc(USER_LEN), thetaa(USER_LEN), thetac(USER_LEN)
+             yb(USER_LEN), yc(USER_LEN), thetaa(USER_LEN), thetac(USER_LEN), &
+             thetan(USER_LEN), thetas(USER_LEN)
     real*8:: ss_b(USER_LEN), ss_c(USER_LEN), ss_b_new(USER_LEN), ss_c_new(USER_LEN)
     real*8:: xb_new(USER_LEN), yb_new(USER_LEN), xc_new(USER_LEN), yc_new(USER_LEN)
     ! real*8:: rn, theta1, R, x3c, x4c
     ! real*8:: a, b, c, xm, xt, ym, yt
     real*8:: x1, x2, x3, x4
     real*8:: dev_X, dev_Y, alfax_buff, delta_yc_trans
+    real*8:: SLY_trans_d, thetan_Lim, Rn, Hn, ds, dj
     real*8:: nx_ratio_array(USER_PARA), ny_ratio_array(USER_PARA), &
              parax_array(USER_PARA), eta_X(USER_PARA), As_X(USER_PARA), &
              paray_array(USER_PARA), paray_array_comb(USER_PARA, USER_PARA), &
@@ -52,7 +54,7 @@
     ! real*8:: parayw_array(USER_PARA), parays_array(USER_PARA)
     integer nx_tot, ny_tot, nx_skip, num_x_part, num_y_part, &
             Mesh_X_trans, Mesh_Y_trans, nx_buff, nxconjuction, nyconjuction, &
-            IFLAG_conj_smooth, IFLAG_flared, IFLAG_shock_fitting
+            IFLAG_X_conj_smooth, IFLAG_Y_conj_smooth, IFLAG_flared, IFLAG_shock_fitting
     integer Mesh_X_TYPE(USER_PARA), Mesh_X_dense(USER_PARA), Mesh_Y_TYPE(USER_PARA), Mesh_Y_dense(USER_PARA)
     integer Mesh_Y_firstlayer_TYPE(USER_PARA)
     ! integer Mesh_Y_normgrowth_TYPE(USER_PARA), Mesh_Y_firstlayer_TYPE(USER_PARA), Mesh_Y_denseshock_TYPE(USER_PARA)
@@ -63,7 +65,7 @@
     
     real*8:: SLX_part(USER_PARA), SLX_prop(USER_LEN), sx_wall_tot(USER_LEN), &
              SLY_part_tmp(USER_PARA), sy_tot_tmp(USER_LEN)
-    real*8:: SLX_total
+    real*8:: SLX_total, SLY_shock_conj_dis
     real*8:: SLY_part(USER_PARA, USER_LEN), sy_tot(USER_LEN, USER_LEN)
     real*8:: SLY_total(USER_LEN)
     real*8:: xx(USER_LEN, USER_LEN), yy(USER_LEN, USER_LEN), xx_tmp(USER_LEN), yy_tmp(USER_LEN)
@@ -90,7 +92,9 @@
     read(66, *)
     read(66, *)
     ! [Boundary Definition - the shock wave fitting curve]
-    read(66, *) a, b, c, xm, xt, ym, yt, setac
+    read(66, *) a, b, c
+    read(66, *)
+    read(66, *) xm, xt, ym, yt, setac
     read(66, *)
     read(66, *)
     ! [Boundary Definition - farfield curve for computation]
@@ -100,7 +104,10 @@
     read(66, *)
     ! [Grid parameters]
     ! [Global grid number & Partition strategy]
-    read(66, *) nx_tot, ny_tot, nx_skip, IFLAG_conj_smooth, nxconjuction, nyconjuction
+    read(66, *) nx_tot, ny_tot, nx_skip
+    read(66, *)
+    read(66, *) IFLAG_X_conj_smooth, IFLAG_Y_conj_smooth, SLY_shock_conj_dis, &
+                thetan_Lim, nxconjuction, nyconjuction
     read(66, *)
     read(66, *) num_x_part, num_y_part, &
                 (nx_ratio_array(i), i = 1, num_x_part), (ny_ratio_array(j), j = 1, num_y_part)
@@ -144,7 +151,7 @@
     !      i.e. the ending coor. of the straight section
     ! x4 - the ending coor. of the flared section
     !      i.e. the length of the whole model
-
+    
     theta1 = theta1 * (PI / 180.d0)
     x1 = - 1.d0 * rn
     x2 = - 1.d0 * rn * sin(theta1)
@@ -443,10 +450,10 @@
     !!!!!!!!!!!!!!!!!!!!
     ! Test module
     
-    if (IFLAG_conj_smooth == 1) then
+    if (IFLAG_X_conj_smooth == 1) then
         
         ! Adjust mesh points near the conjunction points to smooth the connection
-
+        
         ! i_conjunction - find the point nearest to the circular - straight cone conjection point
         do i = 1, nx_tot
             s = sx_wall_tot(i) * SLX_total
@@ -644,7 +651,7 @@
         
     paray_min = MAX_INF
     paray_max = MIN_INF
-        
+            
     do i = 1, nx_tot
         
         ! cal. the length of the curve-normal grid lines
@@ -755,6 +762,8 @@
     
         enddo
         
+        SLY_trans_d = SLY_shock_conj_dis * SLY_part_tmp(1)
+        
         do j = 1, ny_tot
             
             sy_tot(j, i) = sy_tot_tmp(j)
@@ -775,6 +784,7 @@
                     yy_tmp(j) = ya(i) + (yc(i) - ya(i)) * ((s * 1.d0) / (SLY_part_tmp(1) * 1.d0))
                     xx(i, j) = xx_tmp(j)
                     yy(i, j) = yy_tmp(j)
+                    
                 !! judge condition too strict!!!
                 else if ((s .gt. SLY_part_tmp(1) + 1.d-7) .and. (s .le. SLY_total(i) + 1.d-7))  then
                     xx_tmp(j) = xc(i) + (xb(i) - xc(i)) * ((s - SLY_part_tmp(1) * 1.d0) / (SLY_part_tmp(2) * 1.d0))
@@ -782,6 +792,46 @@
                     xx(i, j) = xx_tmp(j)
                     yy(i, j) = yy_tmp(j)
                 endif
+                
+                !!! SLY_shock_conj_dis (relative to SLY_1)
+                !!! Smooth the grid transition near the shock curve
+                
+                thetan(i) = (thetac(i) - thetaa(i)) / 2.d0
+                Rn = (SLY_trans_d * 1.d0) / (tan(thetan(i)) * 1.d0)
+                Hn = (SLY_trans_d * 1.d0) / (sin(thetan(i)) * 1.d0)
+                
+                if ((IFLAG_Y_conj_smooth == 1) .and. (thetan(i) .gt. thetan_Lim)) then
+                    
+                    ! SLY_trans_d = SLY_shock_conj_dis * SLY_part_tmp(1)
+                    ! thetan(i) = (thetac(i) - thetaa(i)) / 2.d0
+                    ! Rn = (SLY_trans_d * 1.d0) / (tan(thetan(i)) * 1.d0)
+                    ! Hn = (SLY_trans_d * 1.d0) / (sin(thetan(i)) * 1.d0)
+                    
+                    !!!! for test
+                    if ((s .gt. SLY_part_tmp(1) + 1.d-7) .and. (s .le. SLY_part_tmp(1) + SLY_trans_d)) then
+                        
+                        ds = s - (SLY_part_tmp(1) + 1.d-7)
+                        dj = sqrt(((SLY_trans_d - ds) ** 2) + (Rn ** 2)) - Rn
+                        thetas(i) = thetan(i) - atan(((SLY_trans_d - ds) * 1.d0) / (Rn * 1.d0)) + thetaa(i) + thetan(i)
+                        xx_tmp(j) = xx_tmp(j) - (dj * cos(thetas(i)))
+                        yy_tmp(j) = yy_tmp(j) - (dj * sin(thetas(i)))
+                        xx(i, j) = xx_tmp(j)
+                        yy(i, j) = yy_tmp(j)
+                        
+                    else if ((s .gt. SLY_part_tmp(1) + 1.d-7 - SLY_trans_d) .and. (s .le. SLY_part_tmp(1) + 1.d-7)) then
+                        
+                        ds = s - (SLY_part_tmp(1) + 1.d-7 - SLY_trans_d)
+                        dj = sqrt((ds ** 2) + (Rn ** 2)) - Rn
+                        thetas(i) = atan((ds * 1.d0) / (Rn * 1.d0)) + thetaa(i)
+                        xx_tmp(j) = xx_tmp(j) - (dj * cos(thetas(i)))
+                        yy_tmp(j) = yy_tmp(j) - (dj * sin(thetas(i)))
+                        xx(i, j) = xx_tmp(j)
+                        yy(i, j) = yy_tmp(j)
+                        
+                    endif
+                    
+                endif
+                
             endif
             
         enddo

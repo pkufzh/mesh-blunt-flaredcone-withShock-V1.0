@@ -36,7 +36,7 @@
 				<Tool Name="VFManifestTool" SuppressStartupBanner="true"/></Configuration>
 		<Configuration Name="Release|x64">
 				<Tool Name="VFFortranCompilerTool" SuppressStartupBanner="true" RuntimeLibrary="rtMultiThreadedDLL"/>
-				<Tool Name="VFLinkerTool" LinkIncremental="linkIncrementalNo" SuppressStartupBanner="true" SubSystem="subSystemConsole"/>
+				<Tool Name="VFLinkerTool" LinkIncremental="linkIncrementalNo" SuppressStartupBanner="true" SubSystem="subSystemConsole" StackReserveSize="268435456"/>
 				<Tool Name="VFResourceCompilerTool"/>
 				<Tool Name="VFMidlTool" SuppressStartupBanner="true" TargetEnvironment="midlTargetAMD64"/>
 				<Tool Name="VFCustomBuildTool"/>
@@ -51,5 +51,9 @@
 		<Filter Name="Source Files" Filter="f90;for;f;fpp;ftn;def;odl;idl">
 		<File RelativePath=".\grid2d-blunt-flaredcone-withShock-V2.0.in"/>
 		<File RelativePath=".\grid2d-withleading.in"/>
-		<File RelativePath=".\grid2d_input_backup_002.in"/></Filter></Files>
+		<File RelativePath=".\grid2d_input_backup_002.in"/>
+		<File RelativePath=".\grid2d_input_rn0.5_theta5_flared.in"/>
+		<File RelativePath=".\grid2d_input_rn0.5_theta5_flared_1022new.in"/>
+		<File RelativePath=".\grid2d_input_rn3_theta7_flared.in"/>
+		<File RelativePath=".\grid2d_input_Zhong&amp;MaJFM2006_rn3.81_theta7_flared.in"/></Filter></Files>
 	<Globals/></VisualStudioProject>
