@@ -18,11 +18,11 @@
  #  [Grid parameters]
  #  [Global grid number & Partition strategy]
  #  nx_tot      ny_tot      nx_skip        IFLAG_split_leading     nx_split_part     ny_split_part     nx_sub_buff     alfax_sub_buff
-    4500        260         1              1                       1000               260               50              1.035
+    4500        260         1              1                       1200              260               50              1.035
  #  IFLAG_X_conj_smooth      IFLAG_Y_conj_smooth     SLY_shock_conj_dis (relative to SLY_1)   thetan_Lim     nx_conj    ny_conj
     1                        1                       0.1                                      0.02           20         10
  #  num_x_part     num_y_part       nx_ratio_array          ny_ratio_array
-    3              1                0.012  0.212  0.776        1.00
+    3              1                0.01  0.24  0.75        1.00
  #  [Grid Type - x - streamwise direction]
  #  Mesh_X_TYPE - Equal spaced (1), Exp. (2) or Linear (3)         Mesh_X_trans        parax_array             dev_X
     2    2    1                                                    1                   2.0    2.0   2.0        1.0

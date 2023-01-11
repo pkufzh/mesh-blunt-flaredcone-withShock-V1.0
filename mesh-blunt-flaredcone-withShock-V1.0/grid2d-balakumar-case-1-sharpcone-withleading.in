@@ -6,7 +6,7 @@
  #  [Model geometry]
  #  [Global parameters]
  #  rn      theta1      R       x3c      x4c       IFLAG_flared     IFLAG_shock_fitting
-    0.015   7.          931.    30.      500.      0                0
+    0.015   7.          931.    60.      80.      0                0
  #  [Boundary Definition - the shock wave fitting curve]
  #  a       b       c
     0.536346501657409   2.323148158596019   2.215503202086572
@@ -14,23 +14,23 @@
     24.046822742474916   1.161696990880000   8.297382751605097  -0.002901366530000	 13.5
  #  [Boundary Definition - farfield curve for computation]
  #  b2       d2       setab
-    0.03     -1.5     7.0
+    0.05     -1.5     8.5
  #  [Grid parameters]
  #  [Global grid number & Partition strategy]
- #  nx_tot      ny_tot      nx_skip        IFLAG_split_leading     nx_split_part     ny_split_part     nx_sub_buff     alfax_sub_buff
-    4500        260         1              1                       1000               260               50              1.035
+ #  nx_tot      ny_tot      nx_skip
+    500         300         1      
  #  IFLAG_X_conj_smooth      IFLAG_Y_conj_smooth     SLY_shock_conj_dis (relative to SLY_1)   thetan_Lim     nx_conj    ny_conj
     1                        1                       0.1                                      0.02           20         10
  #  num_x_part     num_y_part       nx_ratio_array          ny_ratio_array
-    3              1                0.012  0.212  0.776        1.00
+    3              1                0.10  0.86  0.04        1.00
  #  [Grid Type - x - streamwise direction]
  #  Mesh_X_TYPE - Equal spaced (1), Exp. (2) or Linear (3)         Mesh_X_trans        parax_array             dev_X
-    2    2    1                                                    1                   2.0    2.0   2.0        1.0
+    2    2    2                                                    1                   3.0    2.0   2.0           1.0
  #  Mesh_X_dense        eta_X                   As_X
     0    0    0         0.5    0.5    0.5       1.0    1.0    1.0
  #  [Buffer section] id. = num_x_part + 1
  #  nx_buff     alfax_buff
-    50          1.05
+    20          1.025
  #  [Grid Type - y - wall-normal direction] interpolation involved
  #  Mesh_Y_firstlayer_TYPE - Equal (1), Linear Intep1 (2)      paray_array_comb (num = (num_x_part + 1) * num_y_part)
     2                                                          5.0     5.0    5.0    5.0

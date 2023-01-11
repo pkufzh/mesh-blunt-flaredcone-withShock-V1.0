@@ -13,6 +13,9 @@
 ! IF IFLAG_MESHY_TYPE == 1, V1.0 TYPE mesh, 2: V2.0 type mesh
 !--------------------------------------------------------------
 
+! 2023/01/11 Update
+! Add the module of subdomain spliting
+
 ! Developed by Zhenghao Feng on October 2022
 ! 2D Beta V1.0 Finished by Zhenghao Feng on 14 Oct 2022
 
@@ -30,7 +33,7 @@
     real*8, parameter:: PI = 3.1415926535897932
     real*8, parameter:: MAX_INF = 99999.d0
     real*8, parameter:: MIN_INF = -99999.d0
-    integer, parameter:: USER_PARA = 100, USER_LEN = 6000
+    integer, parameter:: USER_PARA = 100, USER_LEN = 5000
     !!!!!!!!!!!!!!!!!!!!! 2022/10/07
     !real*8, allocatable:: sx(:), sy(:, :), xa(:), xb(:), ya(:), yb(:), SL(:), delty(:)
     !real*8, allocatable:: ss(:), ss_new(:), xb_new(:), yb_new(:)
@@ -45,7 +48,7 @@
     ! real*8:: rn, theta1, R, x3c, x4c
     ! real*8:: a, b, c, xm, xt, ym, yt
     real*8:: x1, x2, x3, x4
-    real*8:: dev_X, dev_Y, alfax_buff, delta_yc_trans
+    real*8:: dev_X, dev_Y, alfax_buff, alfax_sub_buff, delta_yc_trans
     real*8:: SLY_trans_d, thetan_Lim, Rn, Hn, ds, dj
     real*8:: nx_ratio_array(USER_PARA), ny_ratio_array(USER_PARA), &
              parax_array(USER_PARA), eta_X(USER_PARA), As_X(USER_PARA), &
@@ -54,7 +57,8 @@
     ! real*8:: parayw_array(USER_PARA), parays_array(USER_PARA)
     integer nx_tot, ny_tot, nx_skip, num_x_part, num_y_part, &
             Mesh_X_trans, Mesh_Y_trans, nx_buff, nxconjuction, nyconjuction, &
-            IFLAG_X_conj_smooth, IFLAG_Y_conj_smooth, IFLAG_flared, IFLAG_shock_fitting
+            IFLAG_X_conj_smooth, IFLAG_Y_conj_smooth, IFLAG_flared, IFLAG_shock_fitting, &
+            IFLAG_split_leading, nx_split_part, ny_split_part, nx_sub_buff
     integer Mesh_X_TYPE(USER_PARA), Mesh_X_dense(USER_PARA), Mesh_Y_TYPE(USER_PARA), Mesh_Y_dense(USER_PARA)
     integer Mesh_Y_firstlayer_TYPE(USER_PARA)
     ! integer Mesh_Y_normgrowth_TYPE(USER_PARA), Mesh_Y_firstlayer_TYPE(USER_PARA), Mesh_Y_denseshock_TYPE(USER_PARA)
@@ -62,6 +66,7 @@
     integer ID_y_flag(USER_LEN, USER_PARA + 2), ID_y_flag_tmp(USER_PARA + 2)
     integer delta_y_first_min_id, delta_y_first_max_id, delta_y_final_min_id, delta_y_final_max_id
     integer paray_min_id, paray_max_id
+    integer i_extra
     
     real*8:: SLX_part(USER_PARA), SLX_prop(USER_LEN), sx_wall_tot(USER_LEN), &
              SLY_part_tmp(USER_PARA), sy_tot_tmp(USER_LEN)
@@ -69,7 +74,9 @@
     real*8:: SLY_part(USER_PARA, USER_LEN), sy_tot(USER_LEN, USER_LEN)
     real*8:: SLY_total(USER_LEN)
     real*8:: xx(USER_LEN, USER_LEN), yy(USER_LEN, USER_LEN), xx_tmp(USER_LEN), yy_tmp(USER_LEN)
-    real*8:: xx_new(USER_LEN, USER_LEN), yy_new(USER_LEN, USER_LEN)
+    real*8:: xx_new(USER_LEN, USER_LEN), yy_new(USER_LEN, USER_LEN), &
+             xx_new_sub_1(USER_LEN, USER_LEN), yy_new_sub_1(USER_LEN, USER_LEN), &
+             xx_new_sub_2(USER_LEN, USER_LEN), yy_new_sub_2(USER_LEN, USER_LEN)
     real*8:: delta_first_array(USER_PARA), delta_final_array(USER_PARA)
     real*8:: delta_y_first_min(USER_PARA), delta_y_first_max(USER_PARA)
     real*8:: delta_y_final_min(USER_PARA), delta_y_final_max(USER_PARA)
@@ -104,7 +111,7 @@
     read(66, *)
     ! [Grid parameters]
     ! [Global grid number & Partition strategy]
-    read(66, *) nx_tot, ny_tot, nx_skip
+    read(66, *) nx_tot, ny_tot, nx_skip, IFLAG_split_leading, nx_split_part, ny_split_part, nx_sub_buff, alfax_sub_buff
     read(66, *)
     read(66, *) IFLAG_X_conj_smooth, IFLAG_Y_conj_smooth, SLY_shock_conj_dis, &
                 thetan_Lim, nxconjuction, nyconjuction
@@ -254,7 +261,7 @@
         ! deltay0 = c1 * (((c2 * deltax0_ori + c3) ** c4 - 1.d0) ** c5) + c6
         
         c6 = - 1.d-7
-    
+        
         ! search (xcs, ycs) - the transition point from the fitting curve to the line
         ! ycs = 1.d0 / (2.d0 * b2 * tan(setab))
 	    ! xcs = b2 * ycs * ycs + d2
@@ -278,7 +285,8 @@
         
     ! endif
     
-    ! Note: Make sure the grid lines are normal to the previous cuvre (shock wave to wall surface, farfield to shock wave)
+    ! Note: Make sure the grid lines are normal to the previous cuvre 
+    ! (shock wave to wall surface, farfield to shock wave)
     ! scan the curve procedure
     do i = 1, nx_tot
 
@@ -894,6 +902,7 @@
     !write(33, *) 'zone i = ', nx_tot, 'j = ', ny_tot
     do j = 1, ny_tot
         do i = 1, nx_tot
+            ! outter boundary - 1; wall surface - ny_tot
             xx_new(i, j) = xx(i, ny_tot - j + 1)
             yy_new(i, j) = yy(i, ny_tot - j + 1)
             write(33, '(2f15.6)') xx_new(i, j), yy_new(i, j)
@@ -917,9 +926,63 @@
     write(*, *) "Cal. the Jacobian martix from mesh ..."
     write(99, *)
     write(99, *) "Cal. the Jacobian martix from mesh ..."
-    call get_Jacobian(nx_tot - nx_skip, ny_tot, yy_new, xx_new, nx_skip)
+    
+    call get_Jacobian(nx_tot - nx_skip, ny_tot, yy_new, xx_new, nx_skip, 0, 1, USER_LEN)
+    
     write(*, *) "Finish writing the Jacobian martix!"
     write(99, *) "Finish writing the Jacobian martix!"
+    
+    ! Split the whole domain into two subdomains, i.e. withleading and withoutleading
+    if (IFLAG_split_leading == 1) then
+        
+        write(*, *)
+        write(*, *) "Split the mesh domain ..."
+        
+        ! Cal. the new info. of the two subdomains
+        ! nx_sub_1 = nx_split_part + nx_buff
+        ! ny_sub_1 = ny_split_part
+        ! SLX_total_sub_1 = sx_wall_tot(nx_split_part + nx_buff) * SLX_total
+        
+        ! nx_sub_2 = nx_tot - nx_split_part + 1
+        ! ny_sub_2 = ny_split_part
+        
+        ! Subdomain 1: withleading
+        ! split the grid info. for the two subdomains
+        do j = 1, ny_split_part
+            do i = 1, (nx_split_part + nx_skip)
+                xx_new_sub_1(i, j) = xx(i, ny_split_part - j + 1)
+                yy_new_sub_1(i, j) = yy(i, ny_split_part - j + 1)
+            enddo
+        enddo
+        ! Add the buffer region into first subdomain (sub_1)
+        do j = 1, ny_split_part
+            do i_extra = 1, nx_sub_buff
+                ! present global id.
+                i = i_extra + (nx_split_part + nx_skip)
+                ! sx_new_pre = sqrt((xx_new_sub_1(i - 1, j) - xx_new_sub_1(i - 2, j)) ** 2 + (yy_new_sub_1(i - 1, j) - yy_new_sub_1(i - 2, j)) ** 2)
+                xx_new_sub_1(i, j) = xx_new_sub_1(i - 1, j) + (alfax_sub_buff * (xx_new_sub_1(i - 1, j) - xx_new_sub_1(i - 2, j)))
+                yy_new_sub_1(i, j) = yy_new_sub_1(i - 1, j) + (alfax_sub_buff * (yy_new_sub_1(i - 1, j) - yy_new_sub_1(i - 2, j)))
+            enddo
+        enddo
+        call get_Jacobian(nx_split_part + nx_sub_buff, ny_split_part, yy_new_sub_1, xx_new_sub_1, nx_skip, 1, 1, USER_LEN)
+        
+        write(*, *) "Finish spliting the first mesh domain ..."
+        
+        ! Subdomain 2: withoutleading
+        ! i - nx_split_part - nx_skip
+        do j = 1, ny_split_part
+            do i = 1, (nx_tot - nx_skip - nx_split_part)
+                ! xx_sub_2(i - nx_split_part - nx_skip, j) = xx(i, j)
+                ! yy_sub_2(i - nx_split_part - nx_skip, j) = yy(i, j)
+                xx_new_sub_2(i, j) = xx(i + nx_skip + nx_split_part, ny_split_part - j + 1)
+                yy_new_sub_2(i, j) = yy(i + nx_skip + nx_split_part, ny_split_part - j + 1)
+            enddo
+        enddo
+        call get_Jacobian(nx_tot - nx_skip - nx_split_part, ny_split_part, yy_new_sub_2, xx_new_sub_2, 0, 2, 0, USER_LEN)
+        
+        write(*, *) "Finish spliting the second mesh domain ..."
+        
+    endif
     
     write(*, *)
     write(*, *) "This is the END of the PROGRAM! Please check the quality of the mesh!"
@@ -1886,11 +1949,13 @@
 
 	end
     
-    subroutine get_Jacobian(nx, ny, xx, yy, nx_skip)
+    subroutine get_Jacobian(nx, ny, xx, yy, nx_skip, IFLAG_sub_id, IFLAG_leading, USER_LEN)
     implicit doubleprecision(a - h, o - z)
     ! notice the wall boundary condition order
+    integer IFLAG_leading
     integer, parameter:: LAP = 3
-    integer, parameter:: USER_PARA = 100, USER_LEN = 6000
+    ! integer, parameter:: USER_PARA = 100, USER_LEN = 5000
+    integer USER_LEN
     
     ! real*8:: xx(nx, ny), yy(nx, ny)  !!!!!
 	! real*8:: Akx(nx, ny), Aky(nx, ny), Aix(nx, ny), Aiy(nx, ny), Ajac(nx, ny)
@@ -1902,6 +1967,7 @@
 	real*8:: xk(nx, ny), xi(nx, ny), yk(nx, ny), yi(nx, ny)
 	real*8:: xx1(1 - LAP : nx, ny), yy1(1 - LAP : nx, ny), xx2(nx, ny), yy2(nx, ny)
     real*8:: d(nx, ny), u(nx, ny), v(nx, ny), T(nx, ny)
+    character(len = 150) file_Jacobian, file_Jacobian_warning, file_mesh, file_init_data
     
 
         hx = 1.d0 / (nx - 1.d0)
@@ -1915,16 +1981,19 @@
                 yy2(i, j) = yy(i + nx_skip, j)
             enddo
         enddo
-        do j = 1, ny
-            do i = 1, LAP
-                i1 = 1 - i
-                xx1(i1, j) = - xx(i + nx_skip, j)
-                yy1(i1, j) = yy(i + nx_skip, j)
+        
+        if (IFLAG_leading == 1) then
+            do j = 1, ny
+                do i = 1, LAP
+                    i1 = 1 - i
+                    xx1(i1, j) = - xx(i + nx_skip, j)
+                    yy1(i1, j) = yy(i + nx_skip, j)
+                enddo
             enddo
-        enddo
+        endif
 
-        call dx0(xx1, xk, nx, ny, hx, LAP)
-        call dx0(yy1, yk, nx, ny, hx, LAP)
+        call dx0(xx1, xk, nx, ny, hx, LAP, IFLAG_leading)
+        call dx0(yy1, yk, nx, ny, hx, LAP, IFLAG_leading)
         call dy0(xx2, xi, nx, ny, hy)
         call dy0(yy2, yi, nx, ny, hy)
         
@@ -1935,7 +2004,30 @@
         Aix = - Ajac * yk
         Aiy = Ajac * xk
 
-        open(55, file = 'OCFD2d-Jacobi.dat', form = 'unformatted')
+        if (IFLAG_sub_id == 0) then
+            
+            file_Jacobian = "OCFD2d-Jacobi.dat"
+            file_Jacobian_warning = "Jacobian_Warning_info.log"
+            file_mesh = "grid.dat"
+            file_init_data = "cone2d0.dat"
+            
+        else if (IFLAG_sub_id == 1) then
+            
+            file_Jacobian = "OCFD2d-Jacobi-sub-1.dat"
+            file_Jacobian_warning = "Jacobian_Warning_info-sub-1.log"
+            file_mesh = "grid-sub-1.dat"
+            file_init_data = "cone2d0-sub-1.dat"
+            
+        else if (IFLAG_sub_id == 2) then
+            
+            file_Jacobian = "OCFD2d-Jacobi-sub-2.dat"
+            file_Jacobian_warning = "Jacobian_Warning_info-sub-2.log"
+            file_mesh = "grid-sub-2.dat"
+            file_init_data = "cone2d0-sub-2.dat"
+            
+        endif
+        
+        open(55, file = trim(file_Jacobian), form = 'unformatted')
         write(55) xx2
         write(55) yy2
         write(55) Akx
@@ -1945,7 +2037,7 @@
         write(55) Ajac
         close(55)
 
-        open(98, file = 'Jacobian_Warning_info.log')
+        open(98, file = trim(file_Jacobian_warning))
         do j = 1, ny
             do i = 1, nx
                 if (Ajac(i, j) .lt. 1.e-5) then
@@ -1957,7 +2049,7 @@
         close(98)
 
         ! Write the final mesh
-        open(33, file = 'grid.dat')
+        open(33, file = trim(file_mesh))
         write(33, *) 'variables = x, y, Akx, Aky, Aix, Aiy, Ajac'
         write(33, *) 'zone i = ', nx , 'j = ', ny
         do j = 1, ny
@@ -1977,7 +2069,7 @@
         v = 1.
         T = 1.
 
-        open(44, file = 'cone2d0.dat', form = 'unformatted')
+        open(44, file = trim(file_init_data), form = 'unformatted')
         write(44) Istep, tt
         write(44) d
         write(44) u
@@ -1987,8 +2079,9 @@
 
     end
     
-    subroutine dx0(f, fx, nx, ny, hx, LAP)
+    subroutine dx0(f, fx, nx, ny, hx, LAP, IFLAG_leading)
     implicit doubleprecision (a - h, o - z)
+    integer IFLAG_leading
     ! integer, parameter:: USER_PARA = 100, USER_LEN = 2000
     real*8:: f(1 - LAP : nx, ny), fx(nx, ny)
 
@@ -1999,10 +2092,24 @@
         a3 = 3.d0 / (4.d0 * hx)
 
         do j = 1, ny
-            do i = 1, nx - 3
+            do i = 4, nx - 3
                 fx(i, j) = a1 * (f(i + 3, j) - f(i - 3, j)) &
-                         + a2 * (f(i + 2, j) - f(i - 2, j)) + a3 * (f(i + 1, j) - f(i - 1, j))
+                         + a2 * (f(i + 2, j) - f(i - 2, j)) &
+                         + a3 * (f(i + 1, j) - f(i - 1, j))
             enddo
+        enddo
+        do j = 1, ny
+            if (IFLAG_leading == 0) then
+                fx(1, j) = (- 3.d0 * f(1, j) + 4.d0 * f(2, j) - f(3, j)) / (2.d0 * hx)         
+                fx(2, j) = (- 2.d0 * f(1, j) - 3.d0 * f(2, j) + 6.d0 * f(3, j) - f(4, j)) / (6.d0 * hx)  
+                fx(3, j) = b1 * (f(4, j) - f(2, j)) - b2 * (f(5, j) - f(1, j))
+            else if (IFLAG_leading == 1) then
+                do i = 1, 3
+                    fx(i, j) = a1 * (f(i + 3, j) - f(i - 3, j)) &
+                             + a2 * (f(i + 2, j) - f(i - 2, j)) &
+                             + a3 * (f(i + 1, j) - f(i - 1, j))
+                enddo
+            endif
         enddo
 
         do j = 1, ny
@@ -2028,7 +2135,8 @@
     do j = 4, ny - 3
         do i = 1, nx
             fy(i, j) = a1 * (f(i, j + 3) - f(i, j - 3)) &
-                     + a2 * (f(i, j + 2) - f(i, j - 2)) + a3 * (f(i, j + 1) - f(i, j - 1))
+                     + a2 * (f(i, j + 2) - f(i, j - 2)) &
+                     + a3 * (f(i, j + 1) - f(i, j - 1))
         enddo
     enddo
 
@@ -2036,7 +2144,7 @@
 
         fy(i, 1) = (- 3.d0 * f(i, 1) + 4.d0 * f(i, 2) - f(i, 3)) / (2.d0 * hy)            
         fy(i, 2) = (- 2.d0 * f(i, 1) - 3.d0 * f(i, 2) + 6.d0 * f(i, 3) - f(i, 4)) / (6.d0 * hy)
-        fy(i, 3) = b1 * (f(i, 4) - f(i, 2)) - b2*(f(i, 5) - f(i, 1))
+        fy(i, 3) = b1 * (f(i, 4) - f(i, 2)) - b2 * (f(i, 5) - f(i, 1))
 
         fy(i, ny - 2) = b1 * (f(i, ny - 1) - f(i, ny - 3)) - b2 * (f(i, ny) - f(i, ny - 4))
         fy(i, ny - 1) = (f(i, ny - 3) - 6.d0 * f(i, ny - 2) &
@@ -2050,5 +2158,45 @@
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                    
+    !! natural coor. s (ncs), i.e. the arc length from the stagnation to the present pos. 
+    !s_extra = sx_wall_tot(i) * SLX_total
+    !
+    !! Section: buffer range
+    !! (xa, ya) - wall surface
+    !sa_extra = s_extra - SLX_total_sub_1
+    !thetaa_extra = thetaa(i - 1)
+    !xa_extra = xa(nx_split_part + nx_skip) + sa_extra * cos(thetaa_extra)
+    !ya_extra = ya(nx_split_part + nx_skip) + sa_extra * sin(thetaa_extra)
+    !
+    !if (IFLAG_shock_fitting == 0) then
+    !
+    !    ! (xb, yb) - parabolic-line farfield
+    !    call getxb_farfield_shock_normal(xa_extra, ya_extra, thetaa_extra, xb_tmp, yb_tmp)
+    !    xb_extra = xb_tmp
+    !    yb_extra = yb_tmp
+    !
+    !    do j = 1, ny
+	    !     xx_sub_1(i, j) = xb_extra + (xa_extra - xb_extra) * sy(i, j)
+	    !     yy_sub_1(i, j) = yb_extra + (ya_extra - yb_extra) * sy(i, j)
+	    ! enddo
+    !
+    !else if (IFLAG_shock_fitting == 1) then
+    !
+    !    ! (xc, yc) - shock wave
+    !    ! thetaa(i) = (PI / 2.d0) - alfa
+    !    ! common module
+    !    call getxc_shock_wall_normal(xa_extra, ya_extra, thetaa_extra, xc_tmp, yc_tmp, thetac_tmp)
+    !    xc_extra = xc_tmp
+    !    yc_extra = yc_tmp
+    !    thetac_extra = thetac_tmp
+    !
+    !    ! (xb, yb) - parabolic-line farfield
+    !    call getxb_farfield_shock_normal(xc_extra, yc_extra, thetac_extra, xb_tmp, yb_tmp)
+    !    xb_extra = xb_tmp
+    !    yb_extra = yb_tmp
+    !
+    !endif
+                
     
     

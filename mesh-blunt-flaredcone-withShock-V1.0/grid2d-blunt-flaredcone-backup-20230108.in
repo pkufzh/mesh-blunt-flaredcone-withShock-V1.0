@@ -6,7 +6,7 @@
  #  [Model geometry]
  #  [Global parameters]
  #  rn      theta1      R       x3c      x4c       IFLAG_flared     IFLAG_shock_fitting
-    0.015   7.          931.    30.      500.      0                0
+    0.50    5.          931.    100.     260.      1                1
  #  [Boundary Definition - the shock wave fitting curve]
  #  a       b       c
     0.536346501657409   2.323148158596019   2.215503202086572
@@ -14,30 +14,30 @@
     24.046822742474916   1.161696990880000   8.297382751605097  -0.002901366530000	 13.5
  #  [Boundary Definition - farfield curve for computation]
  #  b2       d2       setab
-    0.03     -1.5     7.0
+    0.18     -0.8     16.5
  #  [Grid parameters]
  #  [Global grid number & Partition strategy]
- #  nx_tot      ny_tot      nx_skip        IFLAG_split_leading     nx_split_part     ny_split_part     nx_sub_buff     alfax_sub_buff
-    4500        260         1              1                       1000               260               50              1.035
+ #  nx_tot      ny_tot      nx_skip      
+    2000        320         1           
  #  IFLAG_X_conj_smooth      IFLAG_Y_conj_smooth     SLY_shock_conj_dis (relative to SLY_1)   thetan_Lim     nx_conj    ny_conj
-    1                        1                       0.1                                      0.02           20         10
+    1                        1                       0.1                                      0.02           15         10
  #  num_x_part     num_y_part       nx_ratio_array          ny_ratio_array
-    3              1                0.012  0.212  0.776        1.00
+    3              2                0.20  0.60  0.20        0.85  0.15
  #  [Grid Type - x - streamwise direction]
  #  Mesh_X_TYPE - Equal spaced (1), Exp. (2) or Linear (3)         Mesh_X_trans        parax_array             dev_X
-    2    2    1                                                    1                   2.0    2.0   2.0        1.0
+    2    2    2                                                    1                   2.0    2.0    1.5       1.0
  #  Mesh_X_dense        eta_X                   As_X
-    0    0    0         0.5    0.5    0.5       1.0    1.0    1.0
+    0    0    0         0.5    0.5    0.5       1.0    1.0    2.0
  #  [Buffer section] id. = num_x_part + 1
  #  nx_buff     alfax_buff
-    50          1.05
+    50          1.025
  #  [Grid Type - y - wall-normal direction] interpolation involved
  #  Mesh_Y_firstlayer_TYPE - Equal (1), Linear Intep1 (2)      paray_array_comb (num = (num_x_part + 1) * num_y_part)
-    2                                                          5.0     5.0    5.0    5.0
+    2    2                                                     4.0    4.0    4.0    4.0    2.0    2.0    2.0    2.0
  #  Mesh_Y_TYPE - Equal spaced (1), Exp. (2) or Linear (3)     Mesh_Y_trans        dev_Y
-    2                                                          1                   1.0
+    2    2                                                     1                   1.0
  #  Mesh_Y_dense        eta_Y                   As_Y
-    0    0              0.2    0.5              2.0    1.5        
+    1    0              0.2    0.5              2.0    1.5         
 
 ***********************************************************************************
 ***-------------------------- Parameter Explanation ----------------------------***
@@ -139,3 +139,87 @@
 ***--------------------------------- The END -----------------------------------***
 ***-------------------------- Parameter Explanation ----------------------------***
 ***********************************************************************************
+
+
+cp =
+
+   0.536411052352383   2.268559528843074   2.164991018049637
+   
+SW_c_x_trans =
+
+   1.155065139500000
+
+>> SW_c_y_trans
+
+SW_c_y_trans =
+
+  -0.001623000000000
+
+>> SW_c_sel_x_pol_max
+
+SW_c_sel_x_pol_max =
+
+  26.856187290969899
+
+>> SW_c_sel_y_pol_max
+
+SW_c_sel_y_pol_max =
+
+   8.850157623426766
+
+
+#  Extra 2D bluntcone grid generation control file - writtern by Zhenghao Feng in Oct 2022
+ #  Version: Beta V1.0
+ #  Main Function: generate the whole mesh of the blunthead-straightcone-flaredcone model
+ #  Exceptional Mode: increase the mesh density on both sides of the input local shock curve
+ #  [Model geometry] (Unit: mm / deg)
+ #  [Global parameters]
+ #  rn      theta1              R       x3      x4
+    3.0     7.                  931.    100.    260.
+ #  [Boundary Definition - the shock wave fitting curve]
+    a       b       c       xm      xt      ym      yt
+    0.536411052352383   2.268559528843074   2.164991018049637   26.856187290969899  1.155065139500000   8.850157623426766   -0.001623000000000
+ #  [Boundary Definition - farfield curve for computation]
+ #  b2       d2       seta2
+    0.15     -1.6     20.
+ #  [Grid parameters]
+ #  [Global grid number & Partition strategy]
+ #  nx_tot      ny_tot
+    500         200
+ #  num_x_part     num_y_part    
+    3              2        
+ #  [Grid Type - x - streamwise direction]
+ #  Mesh_X_TYPE         nx_ratio_array         alfax_array       deltax_first     nx_buff     alfax_buff      nxconjuction
+    1    2    2         0.15  0.35  0.50       2.5  2.5  2.5     4.542825e-4      20          1.005           10
+ #  [Grid Type - y - wall-normal direction]
+ #  Mesh_X_firstlayer_TYPE      alfay_first_begin     alfay_first_end      deltyw_begin    deltyw_end
+    2    2    2                 0.6                   3.0                  0.004           0.01
+ #  Mesh_Y_distribution_TYPE    ny_ratio_array
+    2    3                      0.50  0.50
+
+ #  num_x_part     nx_ratio_array         num_y_part    ny_ratio_array    
+    3              0.15  0.35  0.50       2             0.50  0.50
+ #  [Grid Type - x - streamwise direction]
+ #  Mesh_X_TYPE        deltax_array (1)                 alfax_array - Exp. (2) or Linear (3)
+    1    2    2        4.542825e-4   5e-3   2e-2        2.5  2.5  2.5
+    nx_buff     alfax_buff      nxconjuction
+    20          1.005           10
+ #  [Grid Type - y - wall-normal direction] - wall-normal interpolation
+ #  Mesh_Y_firstlayer_TYPE      deltyw_array (1)        alfayw_array - Exp. (2) or Linear (3)
+    1    1    1                 0.004  0.006  0.008     0.6  1.0  2.0          
+ #  Mesh_Y_densedgrid_TYPE      delty_extra (1)         alfay_extra - Exp. (2) or Linear (3)
+    1    0                      0.002  0.005            1.5   1.0
+
+
+ #  Mesh_X_TYPE        parax_array - "deltax": Equal spaced (1), "alfax": Exp. (2) or Linear (3)
+    1    2    2        4.542825e-4   2.5  2.5
+
+    parayw_array
+
+     #  [Grid Type - y - wall-normal direction] interpolation involved
+ #  Mesh_Y_normgrowth_TYPE - Equal spaced (1), Exp. (2) or Linear (3)       Mesh_Y_trans     dev_Y
+    2    2                                                                  1                1.0
+ #  Mesh_Y_firstlayer_vary      Mesh_Y_firstlayer_TYPE      parayw_array - "deltayw": given (1), "alfayw": Exp. (2) or Lin. (3)     
+    1    1    1                 1    1    1                 0.004  0.006  0.008                                                     
+ #  Mesh_Y_denseshock_vary      Mesh_Y_denseshock_TYPE      parays_array - "deltays" or "alfays"                                         
+    1    1    1                 1    1    1                 0.004  0.006  0.008     

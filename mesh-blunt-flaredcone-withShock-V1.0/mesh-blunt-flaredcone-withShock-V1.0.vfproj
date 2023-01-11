@@ -36,7 +36,7 @@
 				<Tool Name="VFManifestTool" SuppressStartupBanner="true"/></Configuration>
 		<Configuration Name="Release|x64">
 				<Tool Name="VFFortranCompilerTool" SuppressStartupBanner="true" RuntimeLibrary="rtMultiThreadedDLL"/>
-				<Tool Name="VFLinkerTool" LinkIncremental="linkIncrementalNo" SuppressStartupBanner="true" SubSystem="subSystemConsole" StackReserveSize="268435456"/>
+				<Tool Name="VFLinkerTool" LinkIncremental="linkIncrementalNo" SuppressStartupBanner="true" SubSystem="subSystemConsole" StackReserveSize="268435456" StackCommitSize="268435456"/>
 				<Tool Name="VFResourceCompilerTool"/>
 				<Tool Name="VFMidlTool" SuppressStartupBanner="true" TargetEnvironment="midlTargetAMD64"/>
 				<Tool Name="VFCustomBuildTool"/>
@@ -49,6 +49,10 @@
 		<Filter Name="Resource Files" Filter="rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe">
 		<File RelativePath=".\mesh-blunt-flaredcone-withShock-V2.0.f90"/></Filter>
 		<Filter Name="Source Files" Filter="f90;for;f;fpp;ftn;def;odl;idl">
+		<File RelativePath=".\grid2d-balakumar-case-1-sharpcone-combined.in"/>
+		<File RelativePath=".\grid2d-balakumar-case-1-sharpcone-withleading.in"/>
+		<File RelativePath=".\grid2d-balakumar-case-1-sharpcone-withoutleading.in"/>
+		<File RelativePath=".\grid2d-blunt-flaredcone-backup-20230108.in"/>
 		<File RelativePath=".\grid2d-blunt-flaredcone-withShock-V2.0.in"/>
 		<File RelativePath=".\grid2d-withleading.in"/>
 		<File RelativePath=".\grid2d_input_backup_002.in"/>
