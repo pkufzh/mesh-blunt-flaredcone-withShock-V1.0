@@ -15,6 +15,9 @@
 
 ! 2023/01/11 Update
 ! Add the module of subdomain spliting
+    
+! 2023/01/13 Update
+! Add the orthogonal modification
 
 ! Developed by Zhenghao Feng on October 2022
 ! 2D Beta V1.0 Finished by Zhenghao Feng on 14 Oct 2022
@@ -41,15 +44,17 @@
     common/para/ rn, theta1, R, x3c, x4c, a, b, c, xm, xt, ym, yt, b2, d2, setab, setac
     common/para/ xbs, ybs, xcs, ycs, c1, c2, c3, c4, c5, c6
     real*8:: xa(USER_LEN), xb(USER_LEN), xc(USER_LEN), ya(USER_LEN), &
-             yb(USER_LEN), yc(USER_LEN), thetaa(USER_LEN), thetac(USER_LEN), &
-             thetan(USER_LEN), thetas(USER_LEN)
+             yb(USER_LEN), yc(USER_LEN), thetaa(USER_LEN), thetac(USER_LEN), thetab(USER_LEN), &
+             thetan(USER_LEN), thetas(USER_LEN), &
+             xo_ac(USER_LEN), yo_ac(USER_LEN), Rac(USER_LEN), &
+             xo_cb(USER_LEN), yo_cb(USER_LEN), Rcb(USER_LEN)
     real*8:: ss_b(USER_LEN), ss_c(USER_LEN), ss_b_new(USER_LEN), ss_c_new(USER_LEN)
     real*8:: xb_new(USER_LEN), yb_new(USER_LEN), xc_new(USER_LEN), yc_new(USER_LEN)
     ! real*8:: rn, theta1, R, x3c, x4c
     ! real*8:: a, b, c, xm, xt, ym, yt
     real*8:: x1, x2, x3, x4
     real*8:: dev_X, dev_Y, alfax_buff, alfax_sub_buff, delta_yc_trans
-    real*8:: SLY_trans_d, thetan_Lim, Rn, Hn, ds, dj
+    real*8:: SLY_trans_d_1, SLY_trans_d_2, thetan_Lim, Rnd, Hn, ds, dj
     real*8:: nx_ratio_array(USER_PARA), ny_ratio_array(USER_PARA), &
              parax_array(USER_PARA), eta_X(USER_PARA), As_X(USER_PARA), &
              paray_array(USER_PARA), paray_array_comb(USER_PARA, USER_PARA), &
@@ -57,23 +62,33 @@
     ! real*8:: parayw_array(USER_PARA), parays_array(USER_PARA)
     integer nx_tot, ny_tot, nx_skip, num_x_part, num_y_part, &
             Mesh_X_trans, Mesh_Y_trans, nx_buff, nxconjuction, nyconjuction, &
-            IFLAG_X_conj_smooth, IFLAG_Y_conj_smooth, IFLAG_flared, IFLAG_shock_fitting, &
-            IFLAG_split_leading, nx_split_part, ny_split_part, nx_sub_buff
+            IFLAG_X_conj_smooth, IFLAG_Y_conj_smooth, IFLAG_Y_shock_extend, IFLAG_flared, IFLAG_shock_fitting, &
+            IFLAG_split_leading, nx_split_part, ny_split_part, nx_split_conj, nx_sub_buff, &
+            IFlag_iter_OK, num_iter_arc, num_MAX_iter_arc
+    integer IFLAG_Y_orth_curve(2), IFLAG_arc_UpperOrBelow(2)
     integer Mesh_X_TYPE(USER_PARA), Mesh_X_dense(USER_PARA), Mesh_Y_TYPE(USER_PARA), Mesh_Y_dense(USER_PARA)
     integer Mesh_Y_firstlayer_TYPE(USER_PARA)
     ! integer Mesh_Y_normgrowth_TYPE(USER_PARA), Mesh_Y_firstlayer_TYPE(USER_PARA), Mesh_Y_denseshock_TYPE(USER_PARA)
-    integer ID_X(USER_LEN), ID_Y(USER_LEN, USER_LEN), ID_x_flag(USER_PARA + 2)
+    integer ID_X(USER_LEN), ID_Y(USER_LEN, USER_LEN), ID_x_flag(USER_PARA + 2), &
+            ID_find_shock(USER_LEN), ID_find_shock_upper(USER_LEN), ID_find_shock_lower(USER_LEN)
     integer ID_y_flag(USER_LEN, USER_PARA + 2), ID_y_flag_tmp(USER_PARA + 2)
     integer delta_y_first_min_id, delta_y_first_max_id, delta_y_final_min_id, delta_y_final_max_id
     integer paray_min_id, paray_max_id
-    integer i_extra
+    integer i_extra, IFLAG_find_shock_id
+    integer num_shock_upper, num_shock_lower
     
     real*8:: SLX_part(USER_PARA), SLX_prop(USER_LEN), sx_wall_tot(USER_LEN), &
-             SLY_part_tmp(USER_PARA), sy_tot_tmp(USER_LEN)
-    real*8:: SLX_total, SLY_shock_conj_dis
+             SLY_part_tmp(USER_PARA), sy_tot_tmp(USER_LEN), sy_tot_ori(USER_LEN)
+    real*8:: SLX_total, tar_err_arc, SLY_shock_conj_dis(2)
     real*8:: SLY_part(USER_PARA, USER_LEN), sy_tot(USER_LEN, USER_LEN)
     real*8:: SLY_total(USER_LEN)
     real*8:: xx(USER_LEN, USER_LEN), yy(USER_LEN, USER_LEN), xx_tmp(USER_LEN), yy_tmp(USER_LEN)
+    real*8:: xc_tmp, yc_tmp, &
+             xcp_tmp, ycp_tmp, xap_tmp, yap_tmp, xbp_tmp, ybp_tmp, &
+             thetac_tmp, thetaa_tmp, thetab_tmp, sp_tmp, &
+             xcp_new, ycp_new, xap_new, yap_new, xbp_new, ybp_new, &
+             thetac_new, thetaa_new, thetab_new, &
+             Ax, Ax4, ya4, err_tar_arc, xx_tmp_new, yy_tmp_new, xo_tmp, yo_tmp, Rac_tmp, xo_new, yo_new, Rac_new
     real*8:: xx_new(USER_LEN, USER_LEN), yy_new(USER_LEN, USER_LEN), &
              xx_new_sub_1(USER_LEN, USER_LEN), yy_new_sub_1(USER_LEN, USER_LEN), &
              xx_new_sub_2(USER_LEN, USER_LEN), yy_new_sub_2(USER_LEN, USER_LEN)
@@ -82,6 +97,9 @@
     real*8:: delta_y_final_min(USER_PARA), delta_y_final_max(USER_PARA)
     real*8:: parax_array_new(USER_PARA), paray_array_new(USER_PARA), &
              paray_min(USER_PARA), paray_max(USER_PARA)
+    real*8:: dy_shock_upper, dy_shock_lower, dy_shock_upper_plus, dy_shock_lower_plus, &
+             SLY_shock_upper, SLY_shock_lower, SLY_shock_upper_plus, SLY_shock_lower_plus, &
+             SLY_shock_upper_tot, SLY_shock_lower_tot, ratio_shock_upper, ratio_shock_lower
     
     ! read the input parameters
     open(66, file = 'grid2d-blunt-flaredcone-withShock-V2.0.in')
@@ -111,10 +129,20 @@
     read(66, *)
     ! [Grid parameters]
     ! [Global grid number & Partition strategy]
-    read(66, *) nx_tot, ny_tot, nx_skip, IFLAG_split_leading, nx_split_part, ny_split_part, nx_sub_buff, alfax_sub_buff
+    read(66, *) nx_tot, ny_tot, nx_skip !, IFLAG_Y_shock_extend, num_shock_upper, num_shock_lower
     read(66, *)
-    read(66, *) IFLAG_X_conj_smooth, IFLAG_Y_conj_smooth, SLY_shock_conj_dis, &
+    read(66, *) IFLAG_split_leading, nx_split_part, ny_split_part, &
+                nx_split_conj, nx_sub_buff, alfax_sub_buff
+    read(66, *) ! IFLAG_Y_orth_curve      IFLAG_arc_BeginOrEnd
+    read(66, *) (IFLAG_Y_orth_curve(i), i = 1, 2), &
+                (IFLAG_arc_UpperOrBelow(i), i = 1, 2), &
+                num_MAX_iter_arc, err_tar_arc
+    read(66, *)
+    read(66, *) IFLAG_X_conj_smooth, IFLAG_Y_conj_smooth, &
+                (SLY_shock_conj_dis(i), i = 1, 2), &
                 thetan_Lim, nxconjuction, nyconjuction
+    read(66, *)
+    read(66, *) IFLAG_Y_shock_extend, num_shock_upper, num_shock_lower
     read(66, *)
     read(66, *) num_x_part, num_y_part, &
                 (nx_ratio_array(i), i = 1, num_x_part), (ny_ratio_array(j), j = 1, num_y_part)
@@ -159,12 +187,15 @@
     ! x4 - the ending coor. of the flared section
     !      i.e. the length of the whole model
     
+    ! if ()
+    
     theta1 = theta1 * (PI / 180.d0)
     x1 = - 1.d0 * rn
     x2 = - 1.d0 * rn * sin(theta1)
     x3 = x3c - (rn / sin(theta1))
     x4 = x4c - (rn / sin(theta1))
     
+    ! deg --> rad
     setab = setab * (PI / 180.d0)
     setac = setac * (PI / 180.d0)
 
@@ -222,6 +253,7 @@
     
     ! cal. the corresponding points on the three characteristic boundaries
     ! Boundary 1: (xa, ya) - wall surface
+    ! xa1 = - rn
     
     ! Boundary 2: (xb, yb) - far field - parabolic-line curve
     ! parabolic line equ. x = b2 * y * y + d2
@@ -265,12 +297,12 @@
         ! search (xcs, ycs) - the transition point from the fitting curve to the line
         ! ycs = 1.d0 / (2.d0 * b2 * tan(setab))
 	    ! xcs = b2 * ycs * ycs + d2
-        find_xcs_gap = 5.d-2
+        find_xcs_gap = 5.d-3
         find_xcs_s = (- 1.d0) * xt * rn
         find_xcs_t = x4c
         find_xcs_err_min = MAX_INF
         N_xcs = ((find_xcs_t - find_xcs_s) / (find_xcs_gap * 1.d0)) + 1
-    
+        
         ! do xcs_tmp = find_xcs_s, find_xcs_gap, find_xcs_t
         do k = 1, N_xcs
             xcs_tmp = find_xcs_s + (k - 1) * find_xcs_gap
@@ -282,6 +314,27 @@
             endif
         enddo
         ycs = c1 * (((c2 * xcs + c3) ** c4 - 1.d0) ** c5) + c6
+        
+        write(*, *)
+        write(*, *) "Shock fitting info:"
+        write(*, *) xcs, ycs, (setac * (180.d0 / PI))
+        write(99, *)
+        write(99, *) "Shock fitting info:"
+        write(99, *) xcs, ycs, (setac * (180.d0 / PI))
+        
+        ! confirm the validation of setac
+        if (find_xcs_err_min .gt. 1.d-5) then
+            setac = atan((c1 * c2 * c4 * c5) * (((c2 * xcs + c3) ** c4 - 1.d0) ** (c5 - 1.d0)) &
+                      * ((c2 * xcs + c3) ** (c4 - 1.d0)))
+            write(*, *)
+            write(*, *) "Shock fitting info:"
+            write(*, *) "Adjust setac to the minimum value (deg) ..."
+            write(*, *) xcs, ycs, (setac * (180.d0 / PI))
+            write(99, *)
+            write(99, *) "Shock fitting info:"
+            write(99, *) "Adjust setac to the minimum value (deg) ..."
+            write(99, *) xcs, ycs, (setac * (180.d0 / PI))
+        endif
         
     ! endif
     
@@ -585,12 +638,14 @@
     do i = 1 + nx_skip, nx_tot
         write(77, *) i - nx_skip, ID_X(i), xa(i), ya(i)
     enddo
+    close(77)
     write(*, *) "Writing the coor. xb ..."
     write(99, *) "Writing the coor. xb ..."
     open(77, file = "xb.dat")
     do i = 1 + nx_skip, nx_tot
         write(77, *) i - nx_skip, ID_X(i), xb(i), yb(i)
     enddo
+    close(77)
     if (IFLAG_shock_fitting == 1) then
         write(*, *) "Writing the coor. xc ..."
         write(99, *) "Writing the coor. xc ..."
@@ -598,6 +653,7 @@
         do i = 1 + nx_skip, nx_tot
             write(77, *) i - nx_skip, ID_X(i), xc(i), yc(i) !, thetac(i)
         enddo
+        close(77)
     endif
     write(*, *) "Writing the angle theta_xa ..."
     write(99, *) "Writing the angle theta_xa ..."
@@ -605,6 +661,7 @@
     do i = 1 + nx_skip, nx_tot
         write(77, *) i - nx_skip, ID_X(i), thetaa(i)
     enddo
+    close(77)
     if (IFLAG_shock_fitting == 1) then
         write(*, *) "Writing the angle theta_xc ..."
         write(99, *) "Writing the angle theta_xc ..."
@@ -612,6 +669,7 @@
         do i = 1 + nx_skip, nx_tot
             write(77, *) i - nx_skip, ID_X(i), thetac(i)
         enddo
+        close(77)
     endif
     write(*, *) "Finish writing grids info.!"
     write(*, *)
@@ -659,8 +717,279 @@
         
     paray_min = MAX_INF
     paray_max = MIN_INF
-            
+    
+    ! start the grid generation
     do i = 1, nx_tot
+                
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !!! 2023/01/13 - Update the orthogonal grid arc modification
+        ! Original coor. xa(i), ya(i), xc(i), yc(i)
+        xap_tmp = xa(i)
+        yap_tmp = ya(i)
+        xcp_tmp = xc(i)
+        ycp_tmp = yc(i)
+        thetaa_tmp = thetaa(i)
+        thetac_tmp = thetac(i)
+        
+        ! Update the grid coor., including those on the assigned edge
+        !!! Update
+        ! if ((IFLAG_Y_orth_curve == 1) .and. (thetac_tmp .gt. thetaa_tmp)) then       
+        if ((IFLAG_Y_orth_curve(1) == 1) .and. (abs(thetac_tmp - thetaa_tmp) .gt. 1.d-7)) then
+            
+            ! Step 1: (xa, ya) --> (xc, yc)
+            num_iter_arc = 0
+            IFlag_iter_OK = 0
+                        
+            ! start the iteration
+            do while (IFlag_iter_OK .eq. 0)
+                
+                ! execute the current attempt
+                call modi_orth_curve(xcp_tmp, ycp_tmp, xap_tmp, yap_tmp, &
+                                     thetac_tmp, thetaa_tmp, IFLAG_arc_UpperOrBelow(1), &
+                                     xo_ac_tmp, yo_ac_tmp, Rac_tmp, &
+                                     xcp_new, ycp_new, xap_new, yap_new)
+                
+                ! Update for iteration
+                ! Ensure (xc, yc) and (xa, ya) are located on the boundary
+                ! shock boundary - analytical
+                !!!         
+                !thetac_new = atan( (c1 * c2 * c4 * c5) * (((c2 * xcp_new + c3) ** c4 - 1.d0) ** (c5 - 1.d0)) &
+                !                * ((c2 * xcp_new + c3) ** (c4 - 1.d0)) )
+                
+                if (xcp_new .le. xcs) then
+                ! if (thetac_new .gt. setac) then
+                    
+                    ycp_new = c1 * (((c2 * xcp_new + c3) ** c4 - 1.d0) ** c5) + c6
+                    thetac_new = atan( (c1 * c2 * c4 * c5) * (((c2 * xcp_new + c3) ** c4 - 1.d0) ** (c5 - 1.d0)) &
+                                    * ((c2 * xcp_new + c3) ** (c4 - 1.d0)) )
+                    
+                else
+                    
+                    ! ycp_new = c1 * (((c2 * xcp_new + c3) ** c4 - 1.d0) ** c5) + c6
+                    ycp_new = ycs + ((xcp_new - xcs) * tan(setac))
+                    thetac_new = setac
+                    
+                endif
+                            
+                ! wall surface
+                if (xap_new .lt. x1) then
+                    
+                    xap_new = x1
+                    yap_new = 0.d0
+                    thetaa_new = PI / 2.d0
+                    
+                elseif (xap_new .le. x2) then
+                    
+                    yap_new = sqrt((xap_new - x1) * ((2.d0 * rn) - (xap_new - x1)))
+                    thetaa_new = (PI / 2.d0) - (asin(yap_new / rn))
+                                
+                else if ((xap_new .gt. x2) .and. (xap_new .le. x3)) then
+                                
+                    yap_new = (xap_new + (rn / sin(theta1))) * tan(theta1)
+                    thetaa_new = theta1
+                                
+                else if ((xap_new .gt. x3) .and. (xap_new .le. x4)) then
+                                
+                    if (IFLAG_flared == 0) then
+                                    
+                        yap_new = (xap_new + (rn / sin(theta1))) * tan(theta1)
+                        thetaa_new = theta1
+                                    
+                    else if (IFLAG_flared == 1) then
+                                    
+                        Ax = (xap_new - x3) * ((2 * R * sin(theta1)) + (xap_new - x3))
+                        yap_new = h1 + (R * cos(theta1)) - sqrt((R ** 2.d0) * (cos(theta1) ** 2.d0) - Ax)
+                        !!! debug
+                        thetaa_new = atan((R * sin(theta1) + (xap_new - x3)) / ((R * cos(theta1)) - (yap_new - h1)))
+                                
+                    endif
+                                
+                else if (xap_new .gt. x4) then
+                    
+                    if (IFLAG_flared == 0) then
+                                    
+                        yap_new = (xap_new + (rn / sin(theta1))) * tan(theta1)
+                        thetaa_new = theta1
+                                    
+                    else if (IFLAG_flared == 1) then
+                                
+                        Ax4 = (x4 - x3) * ((2 * R * sin(theta1)) + (x4 - x3))
+                        ya4 = h1 + (R * cos(theta1)) - sqrt((R ** 2) * (cos(theta1) ** 2) - Ax4)
+                        yap_new = ya4 + ((xap_new - x4) * thetaa(nx_tot))
+                        thetaa_new = thetaa(nx_tot)
+                        
+                    endif
+                                
+                endif
+                            
+                ! cal. the current displacement of target point
+                ! (xc, yc) --> (xcp_new, ycp_new)
+                if (IFLAG_arc_UpperOrBelow(1) == 0) then            
+                    err_dis = sqrt((xcp_new - xcp_tmp) ** 2 + (ycp_new - ycp_tmp) ** 2)                            
+                ! (xa, ya) --> (xap_new, yap_new)
+                else if (IFLAG_arc_UpperOrBelow(1) == 1) then                                
+                    err_dis = sqrt((xap_new - xap_tmp) ** 2 + (yap_new - yap_tmp) ** 2)                              
+                endif
+                            
+                ! Update the coor.
+                xcp_tmp = xcp_new
+                ycp_tmp = ycp_new
+                xap_tmp = xap_new
+                yap_tmp = yap_new
+                thetac_tmp = thetac_new
+                thetaa_tmp = thetaa_new
+                
+                ! save the arc info.
+                xo_ac_new = xo_ac_tmp
+                yo_ac_new = yo_ac_tmp
+                Rac_new = Rac_tmp
+
+                ! sum counter + 1
+                num_iter_arc = num_iter_arc + 1
+                            
+                ! cal. the norm err
+                if (num_iter_arc == 1) then
+                    err_dis0 = err_dis * 1.d0
+                else
+                    ! err_norm = abs((err_dis - err_dis0) * 1.d0) / (err_dis0 * 1.d0)
+                    err_norm = abs((err_dis * 1.d0) / (err_dis0 * 1.d0))
+                    ! err_dis0 = err_dis
+                    if ((num_iter_arc .gt. num_MAX_iter_arc) .or. (err_norm .le. err_tar_arc)) then
+                        IFlag_iter_OK = 1
+                    endif
+                endif
+                
+            enddo
+            ! END of the iteration
+            
+            ! Update the boundary points
+            xa(i) = xap_new
+            ya(i) = yap_new
+            xc(i) = xcp_new
+            yc(i) = ycp_new
+            thetaa(i) = thetaa_new
+            thetac(i) = thetac_new
+            ! renew the final arc info.
+            xo_ac(i) = xo_ac_new
+            yo_ac(i) = yo_ac_new
+            Rac(i) = Rac_new
+            
+        endif
+            
+        !!!!!!!!!!!!
+        !!!! Updated on 2023/01/16
+        ! Update xb(i), yb(i), thetab(i)
+        call getxb_farfield_shock_normal(xc(i), yc(i), thetac(i), &
+                                         xb_tmp, yb_tmp)
+        xb(i) = xb_tmp
+        yb(i) = yb_tmp
+        if (yb(i) .le. ybs) then
+            thetab(i) = atan(1.d0 / (2.d0 * b2 * yb(i)))
+        else
+            thetab(i) = setab
+        endif
+        
+        ! Original coor. xc(i), yc(i), xb(i), yb(i)
+        xcp_tmp = xc(i)
+        ycp_tmp = yc(i)
+        xbp_tmp = xb(i)
+        ybp_tmp = yb(i)
+        thetac_tmp = thetac(i)
+        thetab_tmp = thetab(i)
+        
+        if ((IFLAG_Y_orth_curve(2) == 1)  .and. (abs(thetab_tmp - thetac_tmp) .gt. 1.d-7)) then
+            
+            ! Step 2: (xc, yc) --> (xb, yb) arc generation
+            num_iter_arc = 0
+            IFlag_iter_OK = 0
+                        
+            ! start the iteration
+            do while (IFlag_iter_OK .eq. 0)
+                        
+                ! execute the current attempt
+                call modi_orth_curve(xbp_tmp, ybp_tmp, xcp_tmp, ycp_tmp, &
+                                     thetab_tmp, thetac_tmp, IFLAG_arc_UpperOrBelow(2), &
+                                     xo_cb_tmp, yo_cb_tmp, Rcb_tmp, &
+                                     xbp_new, ybp_new, xcp_new, ycp_new)
+                
+                ! Update for iteration
+                ! Ensure (xb, yb) and (xc, yc) are located on the boundary
+                ! the upper boundary - analytical
+                if (ybp_new .le. ybs) then
+                    
+                    xbp_new = b2 * (ybp_new * ybp_new) + d2
+                    thetab_new = atan(1.d0 / (2.d0 * b2 * ybp_new))
+                    
+                else
+                    
+                    xbp_new = xbs + ((ybp_new - ybs) / tan(setab))
+                    thetab_new = setab
+                    
+                endif
+                
+                ! shock boundary - analytical
+                if (xcp_new .le. xcs) then
+                ! if (thetac_new .gt. setac) then
+                    
+                    ycp_new = c1 * (((c2 * xcp_new + c3) ** c4 - 1.d0) ** c5) + c6
+                    thetac_new = atan( (c1 * c2 * c4 * c5) * (((c2 * xcp_new + c3) ** c4 - 1.d0) ** (c5 - 1.d0)) &
+                                    * ((c2 * xcp_new + c3) ** (c4 - 1.d0)) )
+                    
+                else
+                    
+                    ! ycp_new = c1 * (((c2 * xcp_new + c3) ** c4 - 1.d0) ** c5) + c6
+                    ycp_new = ycs + ((xcp_new - xcs) * tan(setac))
+                    thetac_new = setac
+                    
+                endif
+                            
+                ! cal. the current displacement of target point
+                ! (xb, yb) --> (xbp_new, ybp_new)    
+                err_dis = sqrt((xbp_new - xbp_tmp) ** 2 + (ybp_new - ybp_tmp) ** 2)
+                ! Update the coor.
+                xbp_tmp = xbp_new
+                ybp_tmp = ybp_new
+                xcp_tmp = xcp_new
+                ycp_tmp = ycp_new
+                thetab_tmp = thetab_new
+                thetac_tmp = thetac_new
+                
+                ! save the arc info.
+                xo_cb_new = xo_cb_tmp
+                yo_cb_new = yo_cb_tmp
+                Rcb_new = Rcb_tmp
+
+                ! sum counter + 1
+                num_iter_arc = num_iter_arc + 1
+                            
+                ! cal. the norm err
+                if (num_iter_arc == 1) then
+                    err_dis0 = err_dis * 1.d0
+                else
+                    ! err_norm = abs((err_dis - err_dis0) * 1.d0) / (err_dis0 * 1.d0)
+                    err_norm = abs((err_dis * 1.d0) / (err_dis0 * 1.d0))
+                    ! err_dis0 = err_dis
+                    if ((num_iter_arc .gt. num_MAX_iter_arc) .or. (err_norm .le. err_tar_arc)) then
+                        IFlag_iter_OK = 1
+                    endif
+                endif
+                
+            enddo
+            ! END of the iteration
+            
+            ! Update the boundary points
+            xb(i) = xbp_new
+            yb(i) = ybp_new
+            xc(i) = xcp_new
+            yc(i) = ycp_new
+            thetab(i) = thetab_new
+            thetac(i) = thetac_new
+            ! renew the final arc info.
+            xo_cb(i) = xo_cb_new
+            yo_cb(i) = yo_cb_new
+            Rcb(i) = Rcb_new
+                        
+        endif
         
         ! cal. the length of the curve-normal grid lines
         !SLX_total = 0
@@ -681,11 +1010,63 @@
             
         else if (IFLAG_shock_fitting == 1) then
             
-            SLY_part(1, i) = sqrt((xc(i) - xa(i)) ** 2 + (yc(i) - ya(i)) ** 2)
-            SLY_part(2, i) = sqrt((xb(i) - xc(i)) ** 2 + (yb(i) - yc(i)) ** 2)
+            ! SLY_part(1, i) = sqrt((xc(i) - xa(i)) ** 2 + (yc(i) - ya(i)) ** 2)
+            ! SLY_part(2, i) = sqrt((xb(i) - xc(i)) ** 2 + (yb(i) - yc(i)) ** 2)
+            
+            if ((IFLAG_Y_orth_curve(1) == 1) .and. (abs(thetac(i) - thetaa(i)) .gt. 1.d-7)) then
+                SLY_part(1, i) = Rac(i) * abs(thetac(i) - thetaa(i))
+            else
+                SLY_part(1, i) = sqrt((xc(i) - xa(i)) ** 2 + (yc(i) - ya(i)) ** 2)
+            endif
+            
+            if ((IFLAG_Y_orth_curve(2) == 1) .and. (abs(thetab(i) - thetac(i)) .gt. 1.d-7)) then
+                SLY_part(2, i) = Rcb(i) * abs(thetab(i) - thetac(i))
+            else
+                SLY_part(2, i) = sqrt((xb(i) - xc(i)) ** 2 + (yb(i) - yc(i)) ** 2)
+            endif  
+            
             SLY_part_tmp(1) = SLY_part(1, i)
             SLY_part_tmp(2) = SLY_part(2, i)
             SLY_total(i) = SLY_part_tmp(1) + SLY_part_tmp(2)
+            
+            !!!!!! Needing Debug !!!!! to be developed 2023/01/17
+            if (IFLAG_Y_shock_extend == 1) then
+                
+                num_y_part = 3
+                
+                SLY_part_tmp(1) = 0.9 * SLY_part(1, i)
+                SLY_part_tmp(3) = 0.9 * SLY_part(2, i)
+                SLY_part_tmp(2) = SLY_total(i) - (SLY_part_tmp(1) + SLY_part_tmp(3))
+                
+                ny_ratio_array(1) = (((ny_tot - 20) * 1.d0) / (ny_tot * 1.d0)) * ny_ratio_array(1)
+                ny_ratio_array(2) = (20 * 1.d0) / (ny_tot * 1.d0)
+                ny_ratio_array(3) = 1.d0 - (ny_ratio_array(1) + ny_ratio_array(2))
+                
+                Mesh_Y_firstlayer_TYPE(3) = Mesh_Y_firstlayer_TYPE(2)
+                Mesh_Y_firstlayer_TYPE(2) = 2
+                
+                paray_array_comb(1, 3) = paray_array_comb(1, 2)
+                paray_array_comb(2, 3) = paray_array_comb(2, 2)
+                paray_array_comb(3, 3) = paray_array_comb(3, 2)
+                paray_array_comb(4, 3) = paray_array_comb(4, 2)
+                paray_array_comb(1, 2) = 2.0
+                paray_array_comb(2, 2) = 2.0
+                paray_array_comb(3, 2) = 2.0
+                paray_array_comb(4, 2) = 2.0
+                
+                Mesh_Y_TYPE(3) = Mesh_Y_TYPE(2)
+                Mesh_Y_TYPE(2) = 1
+                
+                Mesh_Y_dense(3) = Mesh_Y_dense(2)
+                Mesh_Y_dense(2) = 0
+                
+                eta_Y(3) = eta_Y(2)
+                eta_Y(2) = 0.5
+                
+                As_Y(3) = As_Y(2)
+                As_Y(2) = 1.0
+                
+            endif
             
         endif
         
@@ -730,6 +1111,11 @@
         enddo
             
         ! Mesh_Y_firstlayer_TYPE(j)
+        !! cal. s distance along the wall from the stagnation point of each grid
+        !subroutine getsx_wall(nx, num_x_part, nx_ratio_array, nx_buff, alfax_buff, nxconjuction, nyconjuction, &
+        !                  Mesh_X_TYPE, Mesh_X_trans, parax_array, dev_X, &
+        !                  Mesh_X_dense, eta_X, As_X, SLX_part, SLX_total, IFLAG_X, IFLAG_CNT, &
+        !                  sx_wall_tot, id_x, delta_first_array, delta_final_array, parax_array_new)
         
         ! vary paray_array
         call getsx_wall(ny_tot, num_y_part, ny_ratio_array, 0, 0.d0, nxconjuction, nyconjuction, &
@@ -767,70 +1153,247 @@
                 paray_max(k) = paray_array_new(k)
                 paray_max_id = i
             endif
-    
+        
         enddo
         
-        SLY_trans_d = SLY_shock_conj_dis * SLY_part_tmp(1)
+        SLY_trans_d_1 = SLY_shock_conj_dis(1) * SLY_part_tmp(1)
+        SLY_trans_d_2 = SLY_shock_conj_dis(2) * SLY_part_tmp(2)
         
+        if (IFLAG_Y_shock_extend == 2) then
+            
+            ! find the id. on the shock boundary
+            IFLAG_find_shock_id = 0
+            do j = 1, ny_tot
+                ! natural wall-normal coor. s (ncs) j = 241
+                s = sy_tot_tmp(j) * SLY_total(i)
+                if ((s .gt. SLY_part_tmp(1) + 1.d-7) .and. (IFLAG_find_shock_id == 0)) then
+                    ID_find_shock(i) = j
+                    IFLAG_find_shock_id = 1
+                    exit
+                endif
+            enddo
+        
+            !IFLAG_find_shock_id = 0
+            !do j = 1, ny_tot
+            !    ! natural wall-normal coor. s (ncs)
+            !    s = sy_tot_tmp(j) * SLY_total(i)
+            !    if ((s .gt. SLY_part_tmp(1) + 1.d-7 + SLY_trans_d_2) .and. (IFLAG_find_shock_id == 0)) then
+            !        ID_find_shock_upper(i) = j
+            !        IFLAG_find_shock_id = 1
+            !        exit
+            !    endif
+            !enddo
+            !
+            !IFLAG_find_shock_id = 0
+            !do j = 1, ny_tot
+            !    ! natural wall-normal coor. s (ncs)
+            !    s = sy_tot_tmp(j) * SLY_total(i)
+            !    if ((s .gt. SLY_part_tmp(1) + 1.d-7 - SLY_trans_d_1) .and. (IFLAG_find_shock_id == 0)) then
+            !        ID_find_shock_lower(i) = j
+            !        IFLAG_find_shock_id = 1
+            !        exit
+            !    endif
+            !enddo
+            
+            sy_tot_ori = sy_tot_tmp
+            
+            !!! Update on 2023/01/16
+            ! Mode 2: Extend the grid near the shock
+            dy_shock_upper = sy_tot_tmp(ID_find_shock(i) + 1) - sy_tot_tmp(ID_find_shock(i))
+            dy_shock_lower = sy_tot_tmp(ID_find_shock(i)) - sy_tot_tmp(ID_find_shock(i) - 1)
+                        
+            SLY_shock_upper = dy_shock_upper * SLY_total(i)
+            SLY_shock_lower = dy_shock_lower * SLY_total(i)
+            
+            dy_shock_upper_plus = sy_tot_tmp(ID_find_shock(i) + 2) - sy_tot_tmp(ID_find_shock(i) + 1)
+            dy_shock_lower_plus = sy_tot_tmp(ID_find_shock(i) - 1) - sy_tot_tmp(ID_find_shock(i) - 2)
+            
+            SLY_shock_upper_plus = dy_shock_upper_plus * SLY_total(i)
+            SLY_shock_lower_plus = dy_shock_lower_plus * SLY_total(i)
+            
+            ! number of the extended layer above / below the shock
+            !num_shock_upper = floor((SLY_trans_d_2 * 1.d0) / (SLY_shock_upper * 1.d0))
+            !num_shock_lower = floor((SLY_trans_d_1 * 1.d0) / (SLY_shock_lower * 1.d0))
+            !num_shock_upper = 0
+            !num_shock_lower = 10
+            
+            SLY_shock_upper_tot = SLY_shock_upper * num_shock_upper
+            SLY_shock_lower_tot = SLY_shock_lower * num_shock_lower
+            
+            !ratio_shock_upper = (SLY_total(i) - ((sy_tot_tmp(ID_find_shock(i)) * SLY_total(i)) +  SLY_shock_upper_tot)) &
+            !                    / (SLY_total(i) - (sy_tot_tmp(ID_find_shock(i) + num_shock_upper) * SLY_total(i)))
+            !ratio_shock_lower = ((sy_tot_tmp(ID_find_shock(i)) * SLY_total(i)) -  SLY_shock_lower_tot) &
+            !                    / (sy_tot_tmp(ID_find_shock(i) - num_shock_lower) * SLY_total(i))
+            
+            !ratio_shock_upper = (SLY_total(i) - ((sy_tot_tmp(ID_find_shock(i)) * SLY_total(i)) +  SLY_shock_upper_tot + SLY_shock_upper_plus)) &
+            !                    / (SLY_total(i) - (sy_tot_tmp(ID_find_shock(i) + num_shock_upper + 1) * SLY_total(i)))
+            ratio_shock_upper = ((sy_tot_tmp(ID_find_shock(i)) * SLY_total(i)) +  SLY_shock_upper_tot + SLY_shock_upper_plus) &
+                                / (sy_tot_tmp(ID_find_shock(i) + num_shock_upper + 1) * SLY_total(i))
+            ratio_shock_lower = ((sy_tot_tmp(ID_find_shock(i)) * SLY_total(i)) -  SLY_shock_lower_tot - SLY_shock_lower_plus) &
+                                / (sy_tot_tmp(ID_find_shock(i) - num_shock_lower - 1) * SLY_total(i))
+            
+            ! Update the sy of each points
+            do j = 1, ny_tot
+
+                !! Upper extension
+                !if ((s .gt. SLY_part_tmp(1) + 1.d-7) .and. (s .le. SLY_part_tmp(1) + 1.d-7 + SLY_trans_d_2)) then
+                !
+                !! Lower extension
+                !else if ((s .gt. SLY_part_tmp(1) + 1.d-7 - SLY_trans_d_1) .and. (s .le. SLY_part_tmp(1) + 1.d-7)) then
+                !    
+                !endif
+                
+                if (j .lt. (ID_find_shock(i) - num_shock_lower)) then
+                    
+                    !dy_shock_lower_plus = sy_tot_tmp(ID_find_shock(i) - ((ID_find_shock(i) - num_shock_lower) - j)) &
+                    !                    - sy_tot_tmp(ID_find_shock(i) - ((ID_find_shock(i) - num_shock_lower) - j + 1))
+                    !SLY_shock_lower_plus = dy_shock_lower_plus * SLY_total(i)
+                    !
+                    !ratio_shock_lower = ((sy_tot_tmp(ID_find_shock(i)) * SLY_total(i)) -  SLY_shock_lower_tot - SLY_shock_lower_plus) &
+                    !                  / (sy_tot_tmp(ID_find_shock(i) - num_shock_lower - 1) * SLY_total(i))
+                    sy_tot_tmp(j) = sy_tot_ori(j) * ratio_shock_lower
+                    
+                else if ((j .ge. (ID_find_shock(i) - num_shock_lower)) .and. (j .lt. ID_find_shock(i))) then
+                    
+                    sy_tot_tmp(j) = sy_tot_ori(ID_find_shock(i)) - (dy_shock_lower * (ID_find_shock(i) - j))
+                    
+                else if ((j .ge. ID_find_shock(i)) .and. (j .le. ID_find_shock(i) + num_shock_upper)) then
+                    
+                    sy_tot_tmp(j) = sy_tot_ori(ID_find_shock(i)) + (dy_shock_upper * (j - ID_find_shock(i)))
+                    
+                else if ((j .gt. ID_find_shock(i) + num_shock_upper) .and. (j .lt. ny_tot)) then
+                    
+                    ! ratio_shock_upper = () / (sy_tot_tmp(j))
+                    ! sy_tot_tmp(j) = sy_tot_tmp(ny_tot) - ((sy_tot_tmp(ny_tot) - sy_tot_tmp(j)) * ratio_shock_upper)
+                    sy_tot_tmp(j) = sy_tot_tmp(j) * ratio_shock_upper
+                    ! sy_tot_tmp(j) = sy_tot_ori(ID_find_shock(i)) +  (dy_shock_upper * num_shock_upper) &
+                    !              + (sy_tot_ori(j - num_shock_upper + 1) - sy_tot_ori(j - num_shock_upper))
+                    
+                endif
+                
+            enddo
+                    
+        endif
+        
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!        
+        ! apply the arc info.
+        ! cal. the coor. in the Cartersian coordinate
         do j = 1, ny_tot
             
             sy_tot(j, i) = sy_tot_tmp(j)
             ! id_y_flag(j, i) = id_y_flag_tmp(j)
             
             ! natural wall-normal coor. s (ncs)
+            ! sy_tot_tmp(j) - [0, 1]
             s = sy_tot_tmp(j) * SLY_total(i)
             
             if (IFLAG_shock_fitting == 0) then
-                xx_tmp(j) = xa(i) + (xb(i) - xa(i)) * ((s * 1.d0) / (SLY_part_tmp(1) * 1.d0))
-                yy_tmp(j) = ya(i) + (yb(i) - ya(i)) * ((s * 1.d0) / (SLY_part_tmp(1) * 1.d0))
+                
+                xx_tmp(j) = xa(i) + (xb(i) - xa(i)) * ((s * 1.d0) / (SLY_part(1, i) * 1.d0))
+                yy_tmp(j) = ya(i) + (yb(i) - ya(i)) * ((s * 1.d0) / (SLY_part(1, i) * 1.d0))
                 xx(i, j) = xx_tmp(j)
                 yy(i, j) = yy_tmp(j)
+                
             else if (IFLAG_shock_fitting == 1) then
-                ! Section 1: blunt head section
-	            if (s .le. SLY_part_tmp(1) + 1.d-7) then
-                    xx_tmp(j) = xa(i) + (xc(i) - xa(i)) * ((s * 1.d0) / (SLY_part_tmp(1) * 1.d0))
-                    yy_tmp(j) = ya(i) + (yc(i) - ya(i)) * ((s * 1.d0) / (SLY_part_tmp(1) * 1.d0))
+                
+                ! Section 1: below the shock curve
+	            if (s .le. SLY_part(1, i) + 1.d-7) then
+                    
+                    ! sp_tmp --> [0, 1]
+                    sp_tmp = ((s * 1.d0) / (SLY_part(1, i) * 1.d0))
+                    
+                    ! original only wall-normal coor.
+                    xx_tmp(j) = xa(i) + (xc(i) - xa(i)) * sp_tmp
+                    yy_tmp(j) = ya(i) + (yc(i) - ya(i)) * sp_tmp
+                    
+                    ! sp_tmp --> [0, 1]
+                    if (IFLAG_Y_orth_curve(1) == 1) then
+                        
+                        thetap = sp_tmp * abs(thetac(i) - thetaa(i))
+                        
+                        if (thetac(i) .gt. thetaa(i)) then
+                            xx_tmp(j) = xo_ac(i) + (Rac(i) * cos(thetap + thetaa(i)))
+                            yy_tmp(j) = yo_ac(i) + (Rac(i) * sin(thetap + thetaa(i)))
+                        else
+                            thetap = sp_tmp * (thetaa(i) - thetac(i))
+                            xx_tmp(j) = xo_ac(i) - (Rac(i) * cos(thetaa(i) - thetap))
+                            yy_tmp(j) = yo_ac(i) - (Rac(i) * sin(thetaa(i) - thetap))
+                        endif
+                        
+                    endif
+                    
                     xx(i, j) = xx_tmp(j)
                     yy(i, j) = yy_tmp(j)
                     
                 !! judge condition too strict!!!
-                else if ((s .gt. SLY_part_tmp(1) + 1.d-7) .and. (s .le. SLY_total(i) + 1.d-7))  then
-                    xx_tmp(j) = xc(i) + (xb(i) - xc(i)) * ((s - SLY_part_tmp(1) * 1.d0) / (SLY_part_tmp(2) * 1.d0))
-                    yy_tmp(j) = yc(i) + (yb(i) - yc(i)) * ((s - SLY_part_tmp(1) * 1.d0) / (SLY_part_tmp(2) * 1.d0))
+                else if ((s .gt. SLY_part(1, i) + 1.d-7) .and. (s .le. SLY_total(i) + 1.d-7))  then
+                    
+                    !if (IFLAG_Y_orth_curve == 0) then
+                    !    xx_tmp(j) = xa(i) + (xc(i) - xa(i)) * ((s * 1.d0) / (SLY_part_tmp(1) * 1.d0))
+                    !    yy_tmp(j) = ya(i) + (yc(i) - ya(i)) * ((s * 1.d0) / (SLY_part_tmp(1) * 1.d0))
+                    !else if (IFLAG_Y_orth_curve == 1) then
+                    !    call modi_orth_curve(xc(i), yc(i), xa(i), ya(i), thetac(i), thetaa(i), sp_tmp, &
+                    !                         xx_tmp(j), yy_tmp(j), IFLAG_arc_BeginOrEnd)
+                    !endif
+                    
+                    !call getxb_farfield_shock_normal(xc(i), yc(i), thetac(i), &
+                    !                                 xb_tmp, yb_tmp)
+                    !xb(i) = xb_tmp
+                    !yb(i) = yb_tmp
+                    
+                    ! sp_tmp --> [0, 1]
+                    sp_tmp = ((s - SLY_part(1, i) * 1.d0) / (SLY_part(2, i) * 1.d0))
+                    
+                    xx_tmp(j) = xc(i) + (xb(i) - xc(i)) * sp_tmp
+                    yy_tmp(j) = yc(i) + (yb(i) - yc(i)) * sp_tmp
+                    
+                    !xx(i, j) = xx_tmp(j)
+                    !yy(i, j) = yy_tmp(j)
+                    
+                    ! sp_tmp --> [0, 1]
+                    if (IFLAG_Y_orth_curve(2) == 1) then
+                        
+                        thetap = sp_tmp * abs(thetab(i) - thetac(i))
+                        
+                        if (thetab(i) .gt. thetac(i)) then
+                            xx_tmp(j) = xo_cb(i) + (Rcb(i) * cos(thetap + thetac(i)))
+                            yy_tmp(j) = yo_cb(i) + (Rcb(i) * sin(thetap + thetac(i)))
+                        else
+                            xx_tmp(j) = xo_cb(i) - (Rcb(i) * cos(thetac(i) - thetap))
+                            yy_tmp(j) = yo_cb(i) - (Rcb(i) * sin(thetac(i) - thetap))                     
+                        endif
+                        
+                    endif
+                    
                     xx(i, j) = xx_tmp(j)
                     yy(i, j) = yy_tmp(j)
+                    
                 endif
                 
                 !!! SLY_shock_conj_dis (relative to SLY_1)
-                !!! Smooth the grid transition near the shock curve
-                
+                ! Mode 1: Smooth the grid transition near the shock curve
                 thetan(i) = (thetac(i) - thetaa(i)) / 2.d0
-                Rn = (SLY_trans_d * 1.d0) / (tan(thetan(i)) * 1.d0)
-                Hn = (SLY_trans_d * 1.d0) / (sin(thetan(i)) * 1.d0)
+                Rnd = (SLY_trans_d_1 * 1.d0) / (tan(thetan(i)) * 1.d0)
+                Hn = (SLY_trans_d_1 * 1.d0) / (sin(thetan(i)) * 1.d0)
                 
                 if ((IFLAG_Y_conj_smooth == 1) .and. (thetan(i) .gt. thetan_Lim)) then
                     
-                    ! SLY_trans_d = SLY_shock_conj_dis * SLY_part_tmp(1)
-                    ! thetan(i) = (thetac(i) - thetaa(i)) / 2.d0
-                    ! Rn = (SLY_trans_d * 1.d0) / (tan(thetan(i)) * 1.d0)
-                    ! Hn = (SLY_trans_d * 1.d0) / (sin(thetan(i)) * 1.d0)
-                    
                     !!!! for test
-                    if ((s .gt. SLY_part_tmp(1) + 1.d-7) .and. (s .le. SLY_part_tmp(1) + SLY_trans_d)) then
+                    if ((s .gt. SLY_part_tmp(1) + 1.d-7) .and. (s .le. SLY_part_tmp(1) + SLY_trans_d_1)) then
                         
                         ds = s - (SLY_part_tmp(1) + 1.d-7)
-                        dj = sqrt(((SLY_trans_d - ds) ** 2) + (Rn ** 2)) - Rn
-                        thetas(i) = thetan(i) - atan(((SLY_trans_d - ds) * 1.d0) / (Rn * 1.d0)) + thetaa(i) + thetan(i)
+                        dj = sqrt(((SLY_trans_d_1 - ds) ** 2) + (Rnd ** 2)) - Rnd
+                        thetas(i) = thetan(i) - atan(((SLY_trans_d_1 - ds) * 1.d0) / (Rnd * 1.d0)) + thetaa(i) + thetan(i)
                         xx_tmp(j) = xx_tmp(j) - (dj * cos(thetas(i)))
                         yy_tmp(j) = yy_tmp(j) - (dj * sin(thetas(i)))
                         xx(i, j) = xx_tmp(j)
                         yy(i, j) = yy_tmp(j)
                         
-                    else if ((s .gt. SLY_part_tmp(1) + 1.d-7 - SLY_trans_d) .and. (s .le. SLY_part_tmp(1) + 1.d-7)) then
+                    else if ((s .gt. SLY_part_tmp(1) + 1.d-7 - SLY_trans_d_1) .and. (s .le. SLY_part_tmp(1) + 1.d-7)) then
                         
-                        ds = s - (SLY_part_tmp(1) + 1.d-7 - SLY_trans_d)
-                        dj = sqrt((ds ** 2) + (Rn ** 2)) - Rn
-                        thetas(i) = atan((ds * 1.d0) / (Rn * 1.d0)) + thetaa(i)
+                        ds = s - (SLY_part_tmp(1) + 1.d-7 - SLY_trans_d_1)
+                        dj = sqrt((ds ** 2) + (Rnd ** 2)) - Rnd
+                        thetas(i) = atan((ds * 1.d0) / (Rnd * 1.d0)) + thetaa(i)
                         xx_tmp(j) = xx_tmp(j) - (dj * cos(thetas(i)))
                         yy_tmp(j) = yy_tmp(j) - (dj * sin(thetas(i)))
                         xx(i, j) = xx_tmp(j)
@@ -845,6 +1408,34 @@
         enddo
         
     enddo
+    
+    if (IFLAG_shock_fitting == 1) then
+        
+        write(*, *) "Updating angle theta_xa ..."
+        write(99, *) "Updating the angle theta_xa ..."
+        open(77, file = "theta_xa_new.dat")
+        do i = 1 + nx_skip, nx_tot
+            write(77, *) i - nx_skip, ID_X(i), thetaa(i)
+        enddo
+        close(77)
+        
+        write(*, *) "Updating the angle theta_xc ..."
+        write(99, *) "Updating the angle theta_xc ..."
+        open(77, file = "theta_xc_new.dat")
+        do i = 1 + nx_skip, nx_tot
+            write(77, *) i - nx_skip, ID_X(i), thetac(i)
+        enddo
+        close(77)
+        
+        write(*, *) "Updating the angle theta_xb ..."
+        write(99, *) "Updatingthe angle theta_xb ..."
+        open(77, file = "theta_xb_new.dat")
+        do i = 1 + nx_skip, nx_tot
+            write(77, *) i - nx_skip, ID_X(i), thetab(i)
+        enddo
+        close(77)
+        
+    endif
     
     ! ! generate the mesh along the wall-normal direction
     ! do i = 1, nx
@@ -949,16 +1540,16 @@
         ! Subdomain 1: withleading
         ! split the grid info. for the two subdomains
         do j = 1, ny_split_part
-            do i = 1, (nx_split_part + nx_skip)
+            do i = 1, (nx_split_part + nx_skip + nx_split_conj)
                 xx_new_sub_1(i, j) = xx(i, ny_split_part - j + 1)
                 yy_new_sub_1(i, j) = yy(i, ny_split_part - j + 1)
             enddo
         enddo
         ! Add the buffer region into first subdomain (sub_1)
         do j = 1, ny_split_part
-            do i_extra = 1, nx_sub_buff
+            do i_extra = 1, (nx_sub_buff - nx_split_conj)
                 ! present global id.
-                i = i_extra + (nx_split_part + nx_skip)
+                i = i_extra + (nx_split_part + nx_skip + nx_split_conj)
                 ! sx_new_pre = sqrt((xx_new_sub_1(i - 1, j) - xx_new_sub_1(i - 2, j)) ** 2 + (yy_new_sub_1(i - 1, j) - yy_new_sub_1(i - 2, j)) ** 2)
                 xx_new_sub_1(i, j) = xx_new_sub_1(i - 1, j) + (alfax_sub_buff * (xx_new_sub_1(i - 1, j) - xx_new_sub_1(i - 2, j)))
                 yy_new_sub_1(i, j) = yy_new_sub_1(i - 1, j) + (alfax_sub_buff * (yy_new_sub_1(i - 1, j) - yy_new_sub_1(i - 2, j)))
@@ -990,6 +1581,7 @@
     write(99, *)
     write(99, *) "This is the END of the PROGRAM! Please check the quality of the mesh!"
     write(99, *)
+    close(99)
 
     end
     
@@ -1335,7 +1927,7 @@
 
                 endif
 
-                ! employ grid dense strategy
+                ! employ the grid dense strategy
                 if (Mesh_X_dense(k) == 1) then
                     
                     if (IFLAG_X == 1) then
@@ -1947,7 +2539,86 @@
      !                                ss_new(k) - ss_new(k - 1)
 	    !enddo
 
-	end
+    end
+    
+    ! Update subroutine on 2023/01/13
+    !subroutine modi_orth_curve(xc, yc, xn, yn, thetac, thetan, sp, &
+    !                           xp, yp, IFLAG_arc_UpperOrBelow, &
+    !                           xc_new, yc_new, xn_new, yn_new)
+    subroutine modi_orth_curve(xc, yc, xa, ya, thetac, thetaa, IFLAG_arc_UpperOrBelow, &
+                               xo, yo, Rac, &
+                               xcp_new, ycp_new, xap_new, yap_new)
+    
+    implicit doubleprecision(a - h, o - z)
+    common/para/ rn, theta1, R, x3c, x4c, a, b, c, xm, xt, ym, yt, b2, d2, setab, setac
+    common/para/ xbs, ybs, xcs, ycs, c1, c2, c3, c4, c5, c6
+    integer IFLAG_arc_BeginOrEnd
+    real*8 xc, yc, xc_tmp, yc_tmp, xa, ya, xn_tmp, yn_tmp, thetac, thetaa, sp, &
+           xp, yp, xcp_new, ycp_new, xap_new, yap_new
+    real*8 xo, yo, Rac, thetap
+    
+        xcp_new = xc
+        ycp_new = yc
+        xap_new = xa
+        yap_new = ya
+        
+        ! cal. the arc center coor.
+        xo = ((ya - yc) + ((tan(thetac) * xc) - (tan(thetaa) * xa))) / (tan(thetac) - tan(thetaa))
+        yo = (((tan(thetac) * ya) - (tan(thetaa) * yc)) - (tan(thetac) * tan(thetaa) * (xa - xc))) / (tan(thetac) - tan(thetaa))
+        
+        ! cal. the arc radius
+        if (IFLAG_arc_UpperOrBelow == 0) then
+            
+            Rac = sqrt(1 + (tan(thetaa) ** 2)) * (abs(xo - xa))
+            
+            ! modify the upper edge coor.
+            if (thetac .gt. thetaa) then
+                xcp_new = xo + Rac * cos(thetac)
+                ycp_new = yo + Rac * sin(thetac)
+            else
+                xcp_new = xo - Rac * cos(thetac)
+                ycp_new = yo - Rac * sin(thetac)
+            endif
+            
+        else if (IFLAG_arc_UpperOrBelow == 1) then
+            
+            Rac = sqrt(1 + (tan(thetac) ** 2)) * (abs(xo - xc))
+            
+            ! modify the below edge coor.
+            if (thetac .gt. thetaa) then
+                xap_new = xo + Rac * cos(thetaa)
+                yap_new = yo + Rac * sin(thetaa)
+            else
+                xap_new = xo - Rac * cos(thetaa)
+                yap_new = yo - Rac * sin(thetaa)
+            endif
+            
+        endif
+        
+        !! cal. the whole arc length
+        !stot = Rac * (thetac - thetan)
+        !! cal. the coor. (xp, yp) respect to (xo, yo) corresponding to the arc length 'sp'
+        !thetap = sp / stot
+        
+        ! sp --> [0, 1]
+        !thetap = sp * (thetac - thetan)
+        !
+        !xp = xo + Rac * cos(thetap + thetan)
+        !yp = yo + Rac * sin(thetap + thetan)
+        
+        !! Update edge coor. according to the pre-read FLAG
+        !if (IFLAG_arc_UpperOrBelow == 0) then
+        !    ! modify the upper edge coor.
+        !    xcp_new = xo + Rac * cos(thetac)
+        !    ycp_new = yo + Rac * sin(thetac)
+        !else if (IFLAG_arc_UpperOrBelow == 1) then
+        !    ! modify the below edge coor.
+        !    xap_new = xo + Rac * cos(thetaa)
+        !    yap_new = yo + Rac * sin(thetaa)
+        !endif
+    
+    end subroutine
+    
     
     subroutine get_Jacobian(nx, ny, xx, yy, nx_skip, IFLAG_sub_id, IFLAG_leading, USER_LEN)
     implicit doubleprecision(a - h, o - z)
@@ -2154,49 +2825,9 @@
     enddo
 
     end
-
-
+    
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-                    
-    !! natural coor. s (ncs), i.e. the arc length from the stagnation to the present pos. 
-    !s_extra = sx_wall_tot(i) * SLX_total
-    !
-    !! Section: buffer range
-    !! (xa, ya) - wall surface
-    !sa_extra = s_extra - SLX_total_sub_1
-    !thetaa_extra = thetaa(i - 1)
-    !xa_extra = xa(nx_split_part + nx_skip) + sa_extra * cos(thetaa_extra)
-    !ya_extra = ya(nx_split_part + nx_skip) + sa_extra * sin(thetaa_extra)
-    !
-    !if (IFLAG_shock_fitting == 0) then
-    !
-    !    ! (xb, yb) - parabolic-line farfield
-    !    call getxb_farfield_shock_normal(xa_extra, ya_extra, thetaa_extra, xb_tmp, yb_tmp)
-    !    xb_extra = xb_tmp
-    !    yb_extra = yb_tmp
-    !
-    !    do j = 1, ny
-	    !     xx_sub_1(i, j) = xb_extra + (xa_extra - xb_extra) * sy(i, j)
-	    !     yy_sub_1(i, j) = yb_extra + (ya_extra - yb_extra) * sy(i, j)
-	    ! enddo
-    !
-    !else if (IFLAG_shock_fitting == 1) then
-    !
-    !    ! (xc, yc) - shock wave
-    !    ! thetaa(i) = (PI / 2.d0) - alfa
-    !    ! common module
-    !    call getxc_shock_wall_normal(xa_extra, ya_extra, thetaa_extra, xc_tmp, yc_tmp, thetac_tmp)
-    !    xc_extra = xc_tmp
-    !    yc_extra = yc_tmp
-    !    thetac_extra = thetac_tmp
-    !
-    !    ! (xb, yb) - parabolic-line farfield
-    !    call getxb_farfield_shock_normal(xc_extra, yc_extra, thetac_extra, xb_tmp, yb_tmp)
-    !    xb_extra = xb_tmp
-    !    yb_extra = yb_tmp
-    !
-    !endif
-                
+    
     
     

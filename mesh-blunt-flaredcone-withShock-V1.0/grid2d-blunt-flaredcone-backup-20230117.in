@@ -1,0 +1,152 @@
+ #  Extra 2D bluntcone grid generation control file - writtern by Zhenghao Feng in Oct 2022
+ #  Version: Beta V1.0
+ #  Main Function: generate the whole mesh of the blunthead-straightcone-flaredcone model
+ #  Exceptional Mode: increase the mesh density on both sides of the input local shock curve
+ #  Length unit: mm; angle unit: deg
+ #  [Model geometry]
+ #  [Global parameters]
+ #  rn      theta1      R       x3c      x4c       IFLAG_flared     IFLAG_shock_fitting
+    0.50    5.          931.    100.     260.      1                1
+ #  [Boundary Definition - the shock wave fitting curve]
+ #  a       b       c
+    0.536346501657409       2.323148158596019       2.215503202086572
+ #  xm      xt      ym      yt		setac
+    24.046822742474916      1.161696990880000       8.297382751605097       -0.002901366530000      8.0
+ #  [Boundary Definition - farfield curve for computation]
+ #  b2       d2       setab
+    0.15     -1.0     12.0
+ #  [Grid parameters]
+ #  [Global grid number & Partition strategy]
+ #  nx_tot      ny_tot      nx_skip
+    4200        360         1
+ #  IFLAG_split_leading     nx_split_part     ny_split_part     nx_split_conj    nx_sub_buff     alfax_sub_buff
+    1                       1200              360               20               80              1.015
+ #  IFLAG_Y_orth_curve      IFLAG_arc_UpperOrBelow (Ref. edge: 0 - Below; 1 - Upper)    num_MAX_iter_arc    err_tar_arc
+    1     1                 1      0                                                    10                  1.d-6
+ #  IFLAG_X_conj_smooth     IFLAG_Y_conj_smooth     SLY_shock_conj_dis (lower and upper)   thetan_Lim     nx_conj    ny_conj
+    1                       0                       0.1         0.05                       0.02           20         30
+ #  IFLAG_Y_shock_extend    num_shock_upper     num_shock_lower
+    0                       0                   20
+ #  num_x_part     num_y_part       nx_ratio_array          ny_ratio_array
+    3              2                0.10  0.65  0.25        0.80    0.20
+ #  [Grid Type - x - streamwise direction]
+ #  Mesh_X_TYPE - Equal spaced (1), Exp. (2) or Linear (3)         Mesh_X_trans        parax_array             dev_X
+    2    2    2                                                    1                   1.2    2.0   2.0        1.0
+ #  Mesh_X_dense        eta_X                   As_X
+    0    0    0         0.5    0.5    0.5       1.0    1.0    2.0
+ #  [Buffer section] id. = num_x_part + 1
+ #  nx_buff     alfax_buff
+    50          1.025
+ #  [Grid Type - y - wall-normal direction] interpolation involved
+ #  Mesh_Y_firstlayer_TYPE - Equal (1), Linear Intep1 (2)      paray_array_comb (num = (num_x_part + 1) * num_y_part)
+    2    2                                                     4.5     4.5    4.5    4.5    2.0     2.0     2.0     2.0
+ #  Mesh_Y_TYPE - Equal spaced (1), Exp. (2) or Linear (3)     Mesh_Y_trans        dev_Y
+    2    2                                                     1                   1.0
+ #  Mesh_Y_dense        eta_Y                   As_Y
+    1    0              0.20    0.5             4.5    1.5
+
+***********************************************************************************
+***-------------------------- Parameter Explanation ----------------------------***
+***---------------------------------- STRAT ------------------------------------***
+
+ #  [Global model geometry parameters] (Unit: mm / deg)
+ #  rn - the radius of the blunt head
+    theta1 - the half angle of the straight cone frustum
+    R - the radius of the flared cone
+    x3c - the beginning coor. of the flared section (measured from the virtual sharp cone stagnation point)
+          i.e. the ending coor. of the straight section
+    x4c - the ending coor. of the flared section (measured from the virtual sharp cone stagnation point)
+          i.e. the length of the whole model
+    
+ #  [Boundary Definition - the shock wave fitting curve]
+ #  the formula of the fitting shock curve: y = f(x) = a * ((x + 1) ** b - 1.d0) ** (1.d0 / c)
+ #  using the 'lsqcurvefit' algorithm in MATLAB
+ #  a - the 1st fitting coeff.;
+    b - the 2nd fitting coeff.;
+    c - the 3rd fitting coeff.;
+    xm - the MAX x for the scaled fitting range;
+    xt - the transformed distance of x;
+    ym - the MAX y for the scaled fitting range;
+    yt - the transformed distance of y;
+ #  the formula with the real coor.: y_real = (a * ((((((x_real / rn) + xt) / xm)) ** b - 1.d0) ** (1.d0 / c)) * ym - yt) * rn
+ #  xmin = - xt * rn
+
+ #  [Boundary Definition - farfield curve for computation]
+ #  the formula of the parabolic-line outline: x_real = b2 * (y_real ** 2) + d2
+ #  b2 - the curvature control parameter
+    d2 - the intercept on the symmetrical axis
+    seta2 - the stretch slope angle of the line connected to parabolic curve
+
+ #  [Global grid number]
+ #  nx - the number of streamwise grid points
+    ny - the number of wall-normal grid points
+    num_x_part - the number of the partitions in x direction 
+                 (e.g. the blunt head [x1, x2]; the straight section [x2, x3]; the flared section [x3, x4]; num_x_part = 3)
+    nx_ratio_array - the proportion of grid points between [xi, xj]  *Ensure that Sum_{nxij} = 1.0, i = 1, 2, ..., num_x_part + 1, j = i + 1
+    num_y_part - the number of the partitions in y direction
+                 (e.g. the region between the wall and the shock [yw, y2]; the region between the shock and the farfield [y2, y3])
+    ny_ratio_array - the proportion of grid points between [yi, yj] * Ensure that Sum_{nyij} = 1.0, i = 1, 2, ..., num_y_part + 1, j = i + 1
+
+ #  [Grid Type - x - streamwise direction]
+ #  Mesh_X_TYPE (num = num_x_part)
+    1 - Equal grid space: assign the grid distribution for equal space, i.e. "deltax" = SLX_part / (nx_part - 1),
+                          ignore the following input parameters;
+    2 - Expoential grid stretch: "alfax" in "parax_array" - specify the coeff. of Exp. relation
+        if (Mesh_X_trans_smooth == 0)
+            use "alfax" in "parax_array", the coeff. of the exp. growth, to cal. grid distribution of each section;
+        else if (Mesh_X_trans_smooth == 1)
+            - in the case that the present part is NOT the first blunt head (i.e. Part_ID > 1), 
+              then cal. new "alfax" to ensure the first grid step is equal to the final grid step of the previous part;
+            - else, then using the given "alfax" in "parax_array" to cal. the first grid step by default and cal. distribution,
+              i.e. the first "deltax" =  ((exp(alfax / (n - 1)) - 1) / (exp(alfax) - 1));
+    3 - Linear grid stretch: "alfax" in "parax_array" - specify the coeff. of the linear growth. Ibid.
+
+ #  [Buffer section]
+    nx_buff - the number of grids in the buffer section
+    alfax_buff - the growth rate of the grids in the buffer section
+
+    Note: The rear buffer section (the num. of grid = "nx_buff") obey the linear stretch strategy 
+          with the growth rate "alfax_buff", i.e. "Mesh_X_TYPE" == 3.
+          Besides, using the spline to adjust and improve the smoothness of the grids with the input "nxconjuction"
+
+ #  [Grid Type - y - wall-normal direction] - interpolation involved
+ #  Mesh_Y_normgrowth_TYPE (apply to all the wall-normal sections)
+    1 - Equal grid space: assign the grid distribution for equal space, i.e. "deltay" = SLY_part / (ny_part - 1);
+                          ignore the following input parameters;
+    2 - Expoential grid stretch: use the following input parameters;
+    3 - Linear grid stretch: use the following input parameters;
+
+ #  Mesh_Y_firstlayer_TYPE (num = num_x_part)
+    1 - Assign the first layer grid height 
+        if (Mesh_Y_trans_smooth == 0) "deltayw" in "parayw_array"
+            use the "deltayw" in "parayw_array" and FIX the the first layer grid height in the present range
+        else if (Mesh_Y_trans_smooth == 1)
+            use the neighbouring "deltayw" to conduct linear interpolation to cal. the the first layer grid height distribution
+    2 - Expoential grid stretch: "alfayw" in "parayw_array" - specify the coeff. of Exp. Exp. relation
+        if (Mesh_Y_trans_smooth == 0)
+            use "alfayw" in "parayw_array", the coeff. of the exp. growth, to cal. grid distribution of each section;
+        else if (Mesh_Y_trans_smooth == 1)
+            - in the case that the present part is NOT the first blunt head (i.e. Part_ID > 1), 
+              then cal. new "alfayw" to ensure the first grid step is equal to the final grid step of the previous part;
+            - else, then using the given "alfayw" in "parax_array" to cal. the first grid step by default and cal. distribution,
+              i.e. the first "deltayw" =  ((exp(alfayw / (n - 1)) - 1) / (exp(alfayw) - 1));
+    3 - Linear grid stretch: "alfayw" in "parax_array" - specify the coeff. of the linear growth.
+        Ibid.
+
+ #  Mesh_Y_denseshock_TYPE (num = num_x_part)
+    if (Mesh_Y_denseshock_TYPE == 0)
+        0 - NO application, using the default grid mode in the present section
+    else if (Mesh_Y_denseshock_TYPE > 0)
+        1, 2, 3 - increase the density of grids on both sides of the provided shock wave, and 
+                  specify the method of the densed grid mode.
+    Ibid.
+    
+
+***--------------------------------- The END -----------------------------------***
+***-------------------------- Parameter Explanation ----------------------------***
+***********************************************************************************
+ #  Alternative fitting parameters
+ #  a       b       c
+    0.365972360891915   3.255081716645039   2.100860308263461
+ #  xm      xt      ym      yt		setac (MIN = 11.5167)
+    78.093645484949832   1.160859744344000  19.457596026745989  -0.000789800000000	 8.0

@@ -5,39 +5,45 @@
  #  Length unit: mm; angle unit: deg
  #  [Model geometry]
  #  [Global parameters]
- #  rn      theta1      R       x3c      x4c       IFLAG_flared     IFLAG_shock_fitting
-    0.015   7.          931.    30.      500.      0                0
+ #  rn       theta1      R       x3c      x4c       IFLAG_flared     IFLAG_shock_fitting
+    0.015    7.          931.    100.     500.       0                1
  #  [Boundary Definition - the shock wave fitting curve]
  #  a       b       c
-    0.536346501657409   2.323148158596019   2.215503202086572
+    0.300969996366986   3.444146321925435   1.879726328063713
  #  xm      xt      ym      yt		setac
-    24.046822742474916   1.161696990880000   8.297382751605097  -0.002901366530000	 13.5
+    143.6454849498328   1.1186896194667   38.4164774626371  -0.0165244101333      8.0
  #  [Boundary Definition - farfield curve for computation]
  #  b2       d2       setab
-    0.03     -1.5     7.0
+    1.20     -0.1     15.0
  #  [Grid parameters]
  #  [Global grid number & Partition strategy]
- #  nx_tot      ny_tot      nx_skip        IFLAG_split_leading     nx_split_part     ny_split_part     nx_sub_buff     alfax_sub_buff
-    4500        260         1              1                       1000               260               50              1.035
- #  IFLAG_X_conj_smooth      IFLAG_Y_conj_smooth     SLY_shock_conj_dis (relative to SLY_1)   thetan_Lim     nx_conj    ny_conj
-    1                        1                       0.1                                      0.02           20         10
+ #  nx_tot      ny_tot      nx_skip
+    1500        240         1
+ #  IFLAG_split_leading     nx_split_part     ny_split_part     nx_split_conj    nx_sub_buff     alfax_sub_buff
+    0                       1500              360               20               80              1.015
+ #  IFLAG_Y_orth_curve      IFLAG_arc_UpperOrBelow (Ref. edge: 0 - Below; 1 - Upper)    num_MAX_iter_arc    err_tar_arc
+    1     1                 1      0                                                    10                  1.d-6
+ #  IFLAG_X_conj_smooth     IFLAG_Y_conj_smooth     SLY_shock_conj_dis (lower and upper)   thetan_Lim     nx_conj    ny_conj
+    1                       0                       0.1         0.05                       0.02           10         30
+ #  IFLAG_Y_shock_extend    num_shock_upper     num_shock_lower
+    0                       0                   20
  #  num_x_part     num_y_part       nx_ratio_array          ny_ratio_array
-    3              1                0.012  0.212  0.776        1.00
+    3              2                0.025  0.385  0.590     0.80    0.20
  #  [Grid Type - x - streamwise direction]
  #  Mesh_X_TYPE - Equal spaced (1), Exp. (2) or Linear (3)         Mesh_X_trans        parax_array             dev_X
-    2    2    1                                                    1                   2.0    2.0   2.0        1.0
+    2    2    2                                                    1                   1.5    2.0   2.0        1.0
  #  Mesh_X_dense        eta_X                   As_X
-    0    0    0         0.5    0.5    0.5       1.0    1.0    1.0
+    0    0    0         0.5    0.5    0.5       1.0    1.0    2.0
  #  [Buffer section] id. = num_x_part + 1
  #  nx_buff     alfax_buff
-    50          1.05
+    50          1.025
  #  [Grid Type - y - wall-normal direction] interpolation involved
  #  Mesh_Y_firstlayer_TYPE - Equal (1), Linear Intep1 (2)      paray_array_comb (num = (num_x_part + 1) * num_y_part)
-    2                                                          5.0     5.0    5.0    5.0
+    2    2                                                     1.0     1.0    1.0    1.0     2.0     2.0    2.0    2.0
  #  Mesh_Y_TYPE - Equal spaced (1), Exp. (2) or Linear (3)     Mesh_Y_trans        dev_Y
-    2                                                          1                   1.0
+    2    2                                                     1                   1.0
  #  Mesh_Y_dense        eta_Y                   As_Y
-    0    0              0.2    0.5              2.0    1.5        
+    1    0              0.2    0.5              1.2    1.5
 
 ***********************************************************************************
 ***-------------------------- Parameter Explanation ----------------------------***
@@ -139,3 +145,8 @@
 ***--------------------------------- The END -----------------------------------***
 ***-------------------------- Parameter Explanation ----------------------------***
 ***********************************************************************************
+ #  Alternative fitting parameters
+ #  a       b       c
+    0.365972360891915   3.255081716645039   2.100860308263461
+ #  xm      xt      ym      yt		setac (MIN = 11.5167)
+    78.093645484949832   1.160859744344000  19.457596026745989  -0.000789800000000	 8.0
