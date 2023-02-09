@@ -720,279 +720,275 @@
     
     ! start the grid generation
     do i = 1, nx_tot
+                
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !!! 2023/01/13 - Update the orthogonal grid arc modification
+        ! Original coor. xa(i), ya(i), xc(i), yc(i)
+        xap_tmp = xa(i)
+        yap_tmp = ya(i)
+        xcp_tmp = xc(i)
+        ycp_tmp = yc(i)
+        thetaa_tmp = thetaa(i)
+        thetac_tmp = thetac(i)
         
-        if ((IFLAG_Y_orth_curve(1) == 1) .or. (IFLAG_Y_orth_curve(2) == 1)) then
-        
-            !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-            !!! 2023/01/13 - Update the orthogonal grid arc modification
-            ! Original coor. xa(i), ya(i), xc(i), yc(i)
-            xap_tmp = xa(i)
-            yap_tmp = ya(i)
-            xcp_tmp = xc(i)
-            ycp_tmp = yc(i)
-            thetaa_tmp = thetaa(i)
-            thetac_tmp = thetac(i)
-        
-            ! Update the grid coor., including those on the assigned edge
-            !!! Update
-            ! if ((IFLAG_Y_orth_curve == 1) .and. (thetac_tmp .gt. thetaa_tmp)) then       
-            if ((IFLAG_Y_orth_curve(1) == 1) .and. (abs(thetac_tmp - thetaa_tmp) .gt. 1.d-7)) then
+        ! Update the grid coor., including those on the assigned edge
+        !!! Update
+        ! if ((IFLAG_Y_orth_curve == 1) .and. (thetac_tmp .gt. thetaa_tmp)) then       
+        if ((IFLAG_Y_orth_curve(1) == 1) .and. (abs(thetac_tmp - thetaa_tmp) .gt. 1.d-7)) then
             
-                ! Step 1: (xa, ya) --> (xc, yc)
-                num_iter_arc = 0
-                IFlag_iter_OK = 0
+            ! Step 1: (xa, ya) --> (xc, yc)
+            num_iter_arc = 0
+            IFlag_iter_OK = 0
                         
-                ! start the iteration
-                do while (IFlag_iter_OK .eq. 0)
+            ! start the iteration
+            do while (IFlag_iter_OK .eq. 0)
                 
-                    ! execute the current attempt
-                    call modi_orth_curve(xcp_tmp, ycp_tmp, xap_tmp, yap_tmp, &
-                                         thetac_tmp, thetaa_tmp, IFLAG_arc_UpperOrBelow(1), &
-                                         xo_ac_tmp, yo_ac_tmp, Rac_tmp, &
-                                         xcp_new, ycp_new, xap_new, yap_new)
+                ! execute the current attempt
+                call modi_orth_curve(xcp_tmp, ycp_tmp, xap_tmp, yap_tmp, &
+                                     thetac_tmp, thetaa_tmp, IFLAG_arc_UpperOrBelow(1), &
+                                     xo_ac_tmp, yo_ac_tmp, Rac_tmp, &
+                                     xcp_new, ycp_new, xap_new, yap_new)
                 
-                    ! Update for iteration
-                    ! Ensure (xc, yc) and (xa, ya) are located on the boundary
-                    ! shock boundary - analytical
-                    !!!         
-                    !thetac_new = atan( (c1 * c2 * c4 * c5) * (((c2 * xcp_new + c3) ** c4 - 1.d0) ** (c5 - 1.d0)) &
-                    !                * ((c2 * xcp_new + c3) ** (c4 - 1.d0)) )
+                ! Update for iteration
+                ! Ensure (xc, yc) and (xa, ya) are located on the boundary
+                ! shock boundary - analytical
+                !!!         
+                !thetac_new = atan( (c1 * c2 * c4 * c5) * (((c2 * xcp_new + c3) ** c4 - 1.d0) ** (c5 - 1.d0)) &
+                !                * ((c2 * xcp_new + c3) ** (c4 - 1.d0)) )
                 
-                    if (xcp_new .le. xcs) then
-                    ! if (thetac_new .gt. setac) then
+                if (xcp_new .le. xcs) then
+                ! if (thetac_new .gt. setac) then
                     
-                        ycp_new = c1 * (((c2 * xcp_new + c3) ** c4 - 1.d0) ** c5) + c6
-                        thetac_new = atan( (c1 * c2 * c4 * c5) * (((c2 * xcp_new + c3) ** c4 - 1.d0) ** (c5 - 1.d0)) &
-                                        * ((c2 * xcp_new + c3) ** (c4 - 1.d0)) )
+                    ycp_new = c1 * (((c2 * xcp_new + c3) ** c4 - 1.d0) ** c5) + c6
+                    thetac_new = atan( (c1 * c2 * c4 * c5) * (((c2 * xcp_new + c3) ** c4 - 1.d0) ** (c5 - 1.d0)) &
+                                    * ((c2 * xcp_new + c3) ** (c4 - 1.d0)) )
                     
-                    else
+                else
                     
-                        ! ycp_new = c1 * (((c2 * xcp_new + c3) ** c4 - 1.d0) ** c5) + c6
-                        ycp_new = ycs + ((xcp_new - xcs) * tan(setac))
-                        thetac_new = setac
+                    ! ycp_new = c1 * (((c2 * xcp_new + c3) ** c4 - 1.d0) ** c5) + c6
+                    ycp_new = ycs + ((xcp_new - xcs) * tan(setac))
+                    thetac_new = setac
                     
-                    endif
+                endif
                             
-                    ! wall surface
-                    if (xap_new .lt. x1) then
+                ! wall surface
+                if (xap_new .lt. x1) then
                     
-                        xap_new = x1
-                        yap_new = 0.d0
-                        thetaa_new = PI / 2.d0
+                    xap_new = x1
+                    yap_new = 0.d0
+                    thetaa_new = PI / 2.d0
                     
-                    elseif (xap_new .le. x2) then
+                elseif (xap_new .le. x2) then
                     
-                        yap_new = sqrt((xap_new - x1) * ((2.d0 * rn) - (xap_new - x1)))
-                        thetaa_new = (PI / 2.d0) - (asin(yap_new / rn))
+                    yap_new = sqrt((xap_new - x1) * ((2.d0 * rn) - (xap_new - x1)))
+                    thetaa_new = (PI / 2.d0) - (asin(yap_new / rn))
                                 
-                    else if ((xap_new .gt. x2) .and. (xap_new .le. x3)) then
+                else if ((xap_new .gt. x2) .and. (xap_new .le. x3)) then
                                 
+                    yap_new = (xap_new + (rn / sin(theta1))) * tan(theta1)
+                    thetaa_new = theta1
+                                
+                else if ((xap_new .gt. x3) .and. (xap_new .le. x4)) then
+                                
+                    if (IFLAG_flared == 0) then
+                                    
                         yap_new = (xap_new + (rn / sin(theta1))) * tan(theta1)
                         thetaa_new = theta1
-                                
-                    else if ((xap_new .gt. x3) .and. (xap_new .le. x4)) then
-                                
-                        if (IFLAG_flared == 0) then
                                     
-                            yap_new = (xap_new + (rn / sin(theta1))) * tan(theta1)
-                            thetaa_new = theta1
+                    else if (IFLAG_flared == 1) then
                                     
-                        else if (IFLAG_flared == 1) then
-                                    
-                            Ax = (xap_new - x3) * ((2 * R * sin(theta1)) + (xap_new - x3))
-                            yap_new = h1 + (R * cos(theta1)) - sqrt((R ** 2.d0) * (cos(theta1) ** 2.d0) - Ax)
-                            !!! debug
-                            thetaa_new = atan((R * sin(theta1) + (xap_new - x3)) / ((R * cos(theta1)) - (yap_new - h1)))
+                        Ax = (xap_new - x3) * ((2 * R * sin(theta1)) + (xap_new - x3))
+                        yap_new = h1 + (R * cos(theta1)) - sqrt((R ** 2.d0) * (cos(theta1) ** 2.d0) - Ax)
+                        !!! debug
+                        thetaa_new = atan((R * sin(theta1) + (xap_new - x3)) / ((R * cos(theta1)) - (yap_new - h1)))
                                 
-                        endif
+                    endif
                                 
-                    else if (xap_new .gt. x4) then
+                else if (xap_new .gt. x4) then
                     
-                        if (IFLAG_flared == 0) then
+                    if (IFLAG_flared == 0) then
                                     
-                            yap_new = (xap_new + (rn / sin(theta1))) * tan(theta1)
-                            thetaa_new = theta1
+                        yap_new = (xap_new + (rn / sin(theta1))) * tan(theta1)
+                        thetaa_new = theta1
                                     
-                        else if (IFLAG_flared == 1) then
+                    else if (IFLAG_flared == 1) then
                                 
-                            Ax4 = (x4 - x3) * ((2 * R * sin(theta1)) + (x4 - x3))
-                            ya4 = h1 + (R * cos(theta1)) - sqrt((R ** 2) * (cos(theta1) ** 2) - Ax4)
-                            yap_new = ya4 + ((xap_new - x4) * thetaa(nx_tot))
-                            thetaa_new = thetaa(nx_tot)
+                        Ax4 = (x4 - x3) * ((2 * R * sin(theta1)) + (x4 - x3))
+                        ya4 = h1 + (R * cos(theta1)) - sqrt((R ** 2) * (cos(theta1) ** 2) - Ax4)
+                        yap_new = ya4 + ((xap_new - x4) * thetaa(nx_tot))
+                        thetaa_new = thetaa(nx_tot)
                         
-                        endif
+                    endif
                                 
-                    endif
+                endif
                             
-                    ! cal. the current displacement of target point
-                    ! (xc, yc) --> (xcp_new, ycp_new)
-                    if (IFLAG_arc_UpperOrBelow(1) == 0) then            
-                        err_dis = sqrt((xcp_new - xcp_tmp) ** 2 + (ycp_new - ycp_tmp) ** 2)                            
-                    ! (xa, ya) --> (xap_new, yap_new)
-                    else if (IFLAG_arc_UpperOrBelow(1) == 1) then                                
-                        err_dis = sqrt((xap_new - xap_tmp) ** 2 + (yap_new - yap_tmp) ** 2)                              
-                    endif
+                ! cal. the current displacement of target point
+                ! (xc, yc) --> (xcp_new, ycp_new)
+                if (IFLAG_arc_UpperOrBelow(1) == 0) then            
+                    err_dis = sqrt((xcp_new - xcp_tmp) ** 2 + (ycp_new - ycp_tmp) ** 2)                            
+                ! (xa, ya) --> (xap_new, yap_new)
+                else if (IFLAG_arc_UpperOrBelow(1) == 1) then                                
+                    err_dis = sqrt((xap_new - xap_tmp) ** 2 + (yap_new - yap_tmp) ** 2)                              
+                endif
                             
-                    ! Update the coor.
-                    xcp_tmp = xcp_new
-                    ycp_tmp = ycp_new
-                    xap_tmp = xap_new
-                    yap_tmp = yap_new
-                    thetac_tmp = thetac_new
-                    thetaa_tmp = thetaa_new
+                ! Update the coor.
+                xcp_tmp = xcp_new
+                ycp_tmp = ycp_new
+                xap_tmp = xap_new
+                yap_tmp = yap_new
+                thetac_tmp = thetac_new
+                thetaa_tmp = thetaa_new
                 
-                    ! save the arc info.
-                    xo_ac_new = xo_ac_tmp
-                    yo_ac_new = yo_ac_tmp
-                    Rac_new = Rac_tmp
+                ! save the arc info.
+                xo_ac_new = xo_ac_tmp
+                yo_ac_new = yo_ac_tmp
+                Rac_new = Rac_tmp
 
-                    ! sum counter + 1
-                    num_iter_arc = num_iter_arc + 1
+                ! sum counter + 1
+                num_iter_arc = num_iter_arc + 1
                             
-                    ! cal. the norm err
-                    if (num_iter_arc == 1) then
-                        err_dis0 = err_dis * 1.d0
-                    else
-                        ! err_norm = abs((err_dis - err_dis0) * 1.d0) / (err_dis0 * 1.d0)
-                        err_norm = abs((err_dis * 1.d0) / (err_dis0 * 1.d0))
-                        ! err_dis0 = err_dis
-                        if ((num_iter_arc .gt. num_MAX_iter_arc) .or. (err_norm .le. err_tar_arc)) then
-                            IFlag_iter_OK = 1
-                        endif
+                ! cal. the norm err
+                if (num_iter_arc == 1) then
+                    err_dis0 = err_dis * 1.d0
+                else
+                    ! err_norm = abs((err_dis - err_dis0) * 1.d0) / (err_dis0 * 1.d0)
+                    err_norm = abs((err_dis * 1.d0) / (err_dis0 * 1.d0))
+                    ! err_dis0 = err_dis
+                    if ((num_iter_arc .gt. num_MAX_iter_arc) .or. (err_norm .le. err_tar_arc)) then
+                        IFlag_iter_OK = 1
                     endif
+                endif
                 
-                enddo
-                ! END of the iteration
+            enddo
+            ! END of the iteration
             
-                ! Update the boundary points
-                xa(i) = xap_new
-                ya(i) = yap_new
-                xc(i) = xcp_new
-                yc(i) = ycp_new
-                thetaa(i) = thetaa_new
-                thetac(i) = thetac_new
-                ! renew the final arc info.
-                xo_ac(i) = xo_ac_new
-                yo_ac(i) = yo_ac_new
-                Rac(i) = Rac_new
+            ! Update the boundary points
+            xa(i) = xap_new
+            ya(i) = yap_new
+            xc(i) = xcp_new
+            yc(i) = ycp_new
+            thetaa(i) = thetaa_new
+            thetac(i) = thetac_new
+            ! renew the final arc info.
+            xo_ac(i) = xo_ac_new
+            yo_ac(i) = yo_ac_new
+            Rac(i) = Rac_new
             
-            endif
+        endif
             
-            !!!!!!!!!!!!
-            !!!! Updated on 2023/01/16
-            ! Update xb(i), yb(i), thetab(i)
-            call getxb_farfield_shock_normal(xc(i), yc(i), thetac(i), &
-                                             xb_tmp, yb_tmp)
-            xb(i) = xb_tmp
-            yb(i) = yb_tmp
-            if (yb(i) .le. ybs) then
-                thetab(i) = atan(1.d0 / (2.d0 * b2 * yb(i)))
-            else
-                thetab(i) = setab
-            endif
+        !!!!!!!!!!!!
+        !!!! Updated on 2023/01/16
+        ! Update xb(i), yb(i), thetab(i)
+        call getxb_farfield_shock_normal(xc(i), yc(i), thetac(i), &
+                                         xb_tmp, yb_tmp)
+        xb(i) = xb_tmp
+        yb(i) = yb_tmp
+        if (yb(i) .le. ybs) then
+            thetab(i) = atan(1.d0 / (2.d0 * b2 * yb(i)))
+        else
+            thetab(i) = setab
+        endif
         
-            ! Original coor. xc(i), yc(i), xb(i), yb(i)
-            xcp_tmp = xc(i)
-            ycp_tmp = yc(i)
-            xbp_tmp = xb(i)
-            ybp_tmp = yb(i)
-            thetac_tmp = thetac(i)
-            thetab_tmp = thetab(i)
+        ! Original coor. xc(i), yc(i), xb(i), yb(i)
+        xcp_tmp = xc(i)
+        ycp_tmp = yc(i)
+        xbp_tmp = xb(i)
+        ybp_tmp = yb(i)
+        thetac_tmp = thetac(i)
+        thetab_tmp = thetab(i)
         
-            if ((IFLAG_Y_orth_curve(2) == 1)  .and. (abs(thetab_tmp - thetac_tmp) .gt. 1.d-7)) then
+        if ((IFLAG_Y_orth_curve(2) == 1)  .and. (abs(thetab_tmp - thetac_tmp) .gt. 1.d-7)) then
             
-                ! Step 2: (xc, yc) --> (xb, yb) arc generation
-                num_iter_arc = 0
-                IFlag_iter_OK = 0
+            ! Step 2: (xc, yc) --> (xb, yb) arc generation
+            num_iter_arc = 0
+            IFlag_iter_OK = 0
                         
-                ! start the iteration
-                do while (IFlag_iter_OK .eq. 0)
+            ! start the iteration
+            do while (IFlag_iter_OK .eq. 0)
                         
-                    ! execute the current attempt
-                    call modi_orth_curve(xbp_tmp, ybp_tmp, xcp_tmp, ycp_tmp, &
-                                         thetab_tmp, thetac_tmp, IFLAG_arc_UpperOrBelow(2), &
-                                         xo_cb_tmp, yo_cb_tmp, Rcb_tmp, &
-                                         xbp_new, ybp_new, xcp_new, ycp_new)
+                ! execute the current attempt
+                call modi_orth_curve(xbp_tmp, ybp_tmp, xcp_tmp, ycp_tmp, &
+                                     thetab_tmp, thetac_tmp, IFLAG_arc_UpperOrBelow(2), &
+                                     xo_cb_tmp, yo_cb_tmp, Rcb_tmp, &
+                                     xbp_new, ybp_new, xcp_new, ycp_new)
                 
-                    ! Update for iteration
-                    ! Ensure (xb, yb) and (xc, yc) are located on the boundary
-                    ! the upper boundary - analytical
-                    if (ybp_new .le. ybs) then
+                ! Update for iteration
+                ! Ensure (xb, yb) and (xc, yc) are located on the boundary
+                ! the upper boundary - analytical
+                if (ybp_new .le. ybs) then
                     
-                        xbp_new = b2 * (ybp_new * ybp_new) + d2
-                        thetab_new = atan(1.d0 / (2.d0 * b2 * ybp_new))
+                    xbp_new = b2 * (ybp_new * ybp_new) + d2
+                    thetab_new = atan(1.d0 / (2.d0 * b2 * ybp_new))
                     
-                    else
+                else
                     
-                        xbp_new = xbs + ((ybp_new - ybs) / tan(setab))
-                        thetab_new = setab
+                    xbp_new = xbs + ((ybp_new - ybs) / tan(setab))
+                    thetab_new = setab
                     
-                    endif
+                endif
                 
-                    ! shock boundary - analytical
-                    if (xcp_new .le. xcs) then
-                    ! if (thetac_new .gt. setac) then
+                ! shock boundary - analytical
+                if (xcp_new .le. xcs) then
+                ! if (thetac_new .gt. setac) then
                     
-                        ycp_new = c1 * (((c2 * xcp_new + c3) ** c4 - 1.d0) ** c5) + c6
-                        thetac_new = atan( (c1 * c2 * c4 * c5) * (((c2 * xcp_new + c3) ** c4 - 1.d0) ** (c5 - 1.d0)) &
-                                        * ((c2 * xcp_new + c3) ** (c4 - 1.d0)) )
+                    ycp_new = c1 * (((c2 * xcp_new + c3) ** c4 - 1.d0) ** c5) + c6
+                    thetac_new = atan( (c1 * c2 * c4 * c5) * (((c2 * xcp_new + c3) ** c4 - 1.d0) ** (c5 - 1.d0)) &
+                                    * ((c2 * xcp_new + c3) ** (c4 - 1.d0)) )
                     
-                    else
+                else
                     
-                        ! ycp_new = c1 * (((c2 * xcp_new + c3) ** c4 - 1.d0) ** c5) + c6
-                        ycp_new = ycs + ((xcp_new - xcs) * tan(setac))
-                        thetac_new = setac
+                    ! ycp_new = c1 * (((c2 * xcp_new + c3) ** c4 - 1.d0) ** c5) + c6
+                    ycp_new = ycs + ((xcp_new - xcs) * tan(setac))
+                    thetac_new = setac
                     
-                    endif
+                endif
                             
-                    ! cal. the current displacement of target point
-                    ! (xb, yb) --> (xbp_new, ybp_new)    
-                    err_dis = sqrt((xbp_new - xbp_tmp) ** 2 + (ybp_new - ybp_tmp) ** 2)
-                    ! Update the coor.
-                    xbp_tmp = xbp_new
-                    ybp_tmp = ybp_new
-                    xcp_tmp = xcp_new
-                    ycp_tmp = ycp_new
-                    thetab_tmp = thetab_new
-                    thetac_tmp = thetac_new
+                ! cal. the current displacement of target point
+                ! (xb, yb) --> (xbp_new, ybp_new)    
+                err_dis = sqrt((xbp_new - xbp_tmp) ** 2 + (ybp_new - ybp_tmp) ** 2)
+                ! Update the coor.
+                xbp_tmp = xbp_new
+                ybp_tmp = ybp_new
+                xcp_tmp = xcp_new
+                ycp_tmp = ycp_new
+                thetab_tmp = thetab_new
+                thetac_tmp = thetac_new
                 
-                    ! save the arc info.
-                    xo_cb_new = xo_cb_tmp
-                    yo_cb_new = yo_cb_tmp
-                    Rcb_new = Rcb_tmp
+                ! save the arc info.
+                xo_cb_new = xo_cb_tmp
+                yo_cb_new = yo_cb_tmp
+                Rcb_new = Rcb_tmp
 
-                    ! sum counter + 1
-                    num_iter_arc = num_iter_arc + 1
+                ! sum counter + 1
+                num_iter_arc = num_iter_arc + 1
                             
-                    ! cal. the norm err
-                    if (num_iter_arc == 1) then
-                        err_dis0 = err_dis * 1.d0
-                    else
-                        ! err_norm = abs((err_dis - err_dis0) * 1.d0) / (err_dis0 * 1.d0)
-                        err_norm = abs((err_dis * 1.d0) / (err_dis0 * 1.d0))
-                        ! err_dis0 = err_dis
-                        if ((num_iter_arc .gt. num_MAX_iter_arc) .or. (err_norm .le. err_tar_arc)) then
-                            IFlag_iter_OK = 1
-                        endif
+                ! cal. the norm err
+                if (num_iter_arc == 1) then
+                    err_dis0 = err_dis * 1.d0
+                else
+                    ! err_norm = abs((err_dis - err_dis0) * 1.d0) / (err_dis0 * 1.d0)
+                    err_norm = abs((err_dis * 1.d0) / (err_dis0 * 1.d0))
+                    ! err_dis0 = err_dis
+                    if ((num_iter_arc .gt. num_MAX_iter_arc) .or. (err_norm .le. err_tar_arc)) then
+                        IFlag_iter_OK = 1
                     endif
+                endif
                 
-                enddo
-                ! END of the iteration
+            enddo
+            ! END of the iteration
             
-                ! Update the boundary points
-                xb(i) = xbp_new
-                yb(i) = ybp_new
-                xc(i) = xcp_new
-                yc(i) = ycp_new
-                thetab(i) = thetab_new
-                thetac(i) = thetac_new
-                ! renew the final arc info.
-                xo_cb(i) = xo_cb_new
-                yo_cb(i) = yo_cb_new
-                Rcb(i) = Rcb_new
+            ! Update the boundary points
+            xb(i) = xbp_new
+            yb(i) = ybp_new
+            xc(i) = xcp_new
+            yc(i) = ycp_new
+            thetab(i) = thetab_new
+            thetac(i) = thetac_new
+            ! renew the final arc info.
+            xo_cb(i) = xo_cb_new
+            yo_cb(i) = yo_cb_new
+            Rcb(i) = Rcb_new
                         
-            endif
-        
         endif
         
         ! cal. the length of the curve-normal grid lines

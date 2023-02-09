@@ -6,44 +6,44 @@
  #  [Model geometry]
  #  [Global parameters]
  #  rn       theta1      R       x3c      x4c       IFLAG_flared     IFLAG_shock_fitting
-    0.015    7.          931.    100.     500.       0                1
+    0.05     5.          931.    100.     260.      1                1
  #  [Boundary Definition - the shock wave fitting curve]
  #  a       b       c
-    0.300969996366986   3.444146321925435   1.879726328063713
+    0.446726430051911   2.753859558028475   2.152417951711791
  #  xm      xt      ym      yt		setac
-    143.6454849498328   1.1186896194667   38.4164774626371  -0.0165244101333      8.0
+    39.096989966555185   1.182773569420000  12.402974072946503  -0.032581447260000     8.0
  #  [Boundary Definition - farfield curve for computation]
  #  b2       d2       setab
-    1.20     -0.1     15.0
+    0.60     -0.10    15.5
  #  [Grid parameters]
  #  [Global grid number & Partition strategy]
  #  nx_tot      ny_tot      nx_skip
-    1500        240         1
- #  IFLAG_split_leading     nx_split_part     ny_split_part     nx_split_conj    nx_sub_buff     alfax_sub_buff
-    0                       1500              360               20               80              1.015
+    1500        260         1
+ #  IFLAG_split_leading     nx_split_part     ny_split_part     nx_split_conj    nx_sub_extra    alfax_sub_buff
+    0                       1500              240               20               80              1.015
  #  IFLAG_Y_orth_curve      IFLAG_arc_UpperOrBelow (Ref. edge: 0 - Below; 1 - Upper)    num_MAX_iter_arc    err_tar_arc
     1     1                 1      0                                                    10                  1.d-6
  #  IFLAG_X_conj_smooth     IFLAG_Y_conj_smooth     SLY_shock_conj_dis (lower and upper)   thetan_Lim     nx_conj    ny_conj
-    1                       0                       0.1         0.05                       0.02           10         30
+    1                       0                       0.1         0.05                       0.02           20         20
  #  IFLAG_Y_shock_extend    num_shock_upper     num_shock_lower
     0                       0                   20
  #  num_x_part     num_y_part       nx_ratio_array          ny_ratio_array
-    3              2                0.025  0.385  0.590     0.80    0.20
+    3              2                0.02  0.75  0.23      0.80    0.20
  #  [Grid Type - x - streamwise direction]
  #  Mesh_X_TYPE - Equal spaced (1), Exp. (2) or Linear (3)         Mesh_X_trans        parax_array             dev_X
-    2    2    2                                                    1                   1.5    2.0   2.0        1.0
+    2    2    2                                                    1                   1.2    2.0   2.0        1.0
  #  Mesh_X_dense        eta_X                   As_X
-    0    0    0         0.5    0.5    0.5       1.0    1.0    2.0
+    0    0    0         0.5    0.5    0.5       1.0    1.0    1.0
  #  [Buffer section] id. = num_x_part + 1
  #  nx_buff     alfax_buff
-    50          1.025
+    50          1.005
  #  [Grid Type - y - wall-normal direction] interpolation involved
  #  Mesh_Y_firstlayer_TYPE - Equal (1), Linear Intep1 (2)      paray_array_comb (num = (num_x_part + 1) * num_y_part)
-    2    2                                                     1.0     1.0    1.0    1.0     2.0     2.0    2.0    2.0
+    2    2                                                     2.0     2.0    2.0    2.0    2.0     2.0     2.0     2.0
  #  Mesh_Y_TYPE - Equal spaced (1), Exp. (2) or Linear (3)     Mesh_Y_trans        dev_Y
     2    2                                                     1                   1.0
  #  Mesh_Y_dense        eta_Y                   As_Y
-    1    0              0.2    0.5              1.2    1.5
+    1    0              0.14    0.5             1.2    1.5  
 
 ***********************************************************************************
 ***-------------------------- Parameter Explanation ----------------------------***
